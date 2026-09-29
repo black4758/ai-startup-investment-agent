@@ -13,7 +13,7 @@
    - 구매이유 (10%)
 6. GraphState에 결과 반환:
    - tech_analysis: 분석 텍스트
-   - tech_scores: {"기술차별성및특허": 점수, "구매이유": 점수}
+   - tech_scores: {"tech_differentiation": 점수, "purchase_rationale": 점수}
    - missing_items: 정보 부재 항목 리스트 (자동 누적)
    - sources: 인용 출처 리스트 (자동 누적)
 """
@@ -118,7 +118,7 @@ def parse_llm_json_response(raw_text: str) -> Dict[str, Any]:
     # 3. 파싱 실패 시 폴백 기본 구조 반환
     return {
         "tech_analysis": cleaned,
-        "tech_scores": {"기술차별성및특허": 2.0, "구매이유": 2.0},
+        "tech_scores": {"tech_differentiation": 2.0, "purchase_rationale": 2.0},
         "missing_items": ["LLM JSON 응답 파싱 실패로 인한 기본 점수 처리"],
         "sources": [],
     }
@@ -202,8 +202,12 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
     # 5. 스코어 및 결과값 정제
     raw_scores = parsed_data.get("tech_scores", {})
     tech_scores: TechScores = {
-        "기술차별성및특허": float(raw_scores.get("기술차별성및특허", 2.0)),
-        "구매이유": float(raw_scores.get("구매이유", 2.0)),
+        "tech_differentiation": float(
+            raw_scores.get("tech_differentiation", raw_scores.get("기술차별성및특허", 2.0))
+        ),
+        "purchase_rationale": float(
+            raw_scores.get("purchase_rationale", raw_scores.get("구매이유", 2.0))
+        ),
     }
 
     tech_analysis = parsed_data.get("tech_analysis", "").strip()
@@ -219,8 +223,8 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
     all_sources = list(dict.fromkeys(sources + [s for s in collected_sources if s]))
 
     print(f"\n[Tech Agent] '{startup}' 기술성 평가 완료:")
-    print(f"  - 기술차별성및특허: {tech_scores.get('기술차별성및특허')}점 / 5.0")
-    print(f"  - 구매이유: {tech_scores.get('구매이유')}점 / 5.0")
+    print(f"  - 기술차별성및특허(tech_differentiation): {tech_scores.get('tech_differentiation')}점 / 5.0")
+    print(f"  - 구매이유(purchase_rationale): {tech_scores.get('purchase_rationale')}점 / 5.0")
     if missing_items:
         print(f"  - 정보부재 항목: {missing_items}")
 

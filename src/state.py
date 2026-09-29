@@ -4,19 +4,19 @@ from typing import Annotated, Dict, List, TypedDict
 
 # ── PDF C.1 스코어카드 기준 점수 타입 (기본 dict와 100% 호환) ───────────────
 class TechScores(TypedDict, total=False):
-    기술차별성및특허: float  # 25% 비중
-    구매이유: float  # 10% 비중
+    tech_differentiation: float  # 기술 차별성 및 특허 (25% 비중)
+    purchase_rationale: float  # 구매이유 (10% 비중)
 
 
 class CompanyScores(TypedDict, total=False):
-    창업자: float  # 20% 비중
-    실적: float  # 10% 비중
-    수익모델: float  # 10% 비중
+    founder_competence: float  # 창업자 역량 (20% 비중)
+    track_record: float  # 실적 (10% 비중)
+    business_model: float  # 수익모델 (10% 비중)
 
 
 class MarketScores(TypedDict, total=False):
-    시장내포지션및진입장벽: float  # 15% 비중
-    시장성: float  # 10% 비중
+    market_position_and_barriers: float  # 시장 내 포지션 및 진입장벽 (15% 비중)
+    market_potential: float  # 시장성 (10% 비중)
 
 
 # ── PDF D.1 State 설계 (15개 필드 1:1 완벽 일치) ──────────────────────────

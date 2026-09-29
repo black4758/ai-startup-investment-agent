@@ -46,8 +46,8 @@
 {
   "tech_analysis": "기술 분석 종합 보고서 (1. 핵심 기술 및 독자성, 2. 특허 및 TRL 단계, 3. 고객 도입 효과 및 수치, 4. 기술적 한계 및 과제 순으로 상세 서술)",
   "tech_scores": {
-    "기술차별성및특허": 4.5,
-    "구매이유": 4.0
+    "tech_differentiation": 4.5,
+    "purchase_rationale": 4.0
   },
   "missing_items": [
     "정보가 부재하거나 불충분한 세부 항목명 (없을 경우 빈 리스트 [])"
