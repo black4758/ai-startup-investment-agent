@@ -99,7 +99,7 @@ def extract_metadata(file_path: str, content: str = "") -> Dict[str, Any]:
     # ─────────────────────────────────────────────────────────────────
     if "twinny" in rel_path:
         company = "twinny"
-    elif "neubility" in rel_path or "newbility" in rel_path:
+    elif "neubility" in rel_path:
         company = "neubility"
     elif "seoul" in rel_path or "robotics" in rel_path:
         company = "seoulrobotics"
@@ -130,8 +130,8 @@ def extract_metadata(file_path: str, content: str = "") -> Dict[str, Any]:
     elif "financial" in filename:
         doc_type = "company"
     elif "profile" in filename or "business" in filename:
-        # 뉴빌리티 프로필은 기술/재무/특허가 모두 포함된 종합 문서이므로 comprehensive 지정
-        if company == "neubility":
+        # 트위니 및 뉴빌리티 회사소개서(CompanyProfile)는 기술, 특허, 사업, 재무가 종합된 문서이므로 comprehensive 지정
+        if company in ("neubility", "twinny"):
             doc_type = "comprehensive"
         else:
             doc_type = "company"
@@ -205,10 +205,8 @@ def extract_metadata(file_path: str, content: str = "") -> Dict[str, Any]:
     if not date:
         date = "2026-09-29"
 
-    # 기업명 동의어/오타 정규화
-    if company == "newbility":
-        company = "neubility"
-    elif company in ("seoul_robotics", "seoul robotics"):
+    # 기업명 동의어 정규화
+    if company in ("seoul_robotics", "seoul robotics"):
         company = "seoulrobotics"
 
     return {
@@ -324,6 +322,10 @@ def load_all_documents(data_dir: str = "data") -> List[Document]:
                 docs = load_markdown_file(file_path)
                 all_docs.extend(docs)
             elif f.endswith(".pdf"):
+                # .md로 완전 변환된 PDF는 중복 인덱싱 방지를 위해 스킵
+                clean_name = f.lower().replace(" (1)", "").replace(".pdf", "")
+                if clean_name in ["twinny_companyprofile_ko", "twinny_financial_report", "neubility_companyprofile_ko"]:
+                    continue
                 docs = load_pdf_file(file_path)
                 all_docs.extend(docs)
 
