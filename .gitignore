@@ -43,3 +43,5 @@ ENV/
 *.swp
 *.swo
 문서.pdf
+*설계_산출물.pdf
+storage/
