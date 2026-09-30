@@ -1,3 +1,11 @@
+---
+company: twinny
+doc_type: tech
+source: 트위니 자율주행로봇 기술백서 및 제품 카탈로그
+url: https://twinny.ai/downloads
+date: 2026-05-01
+---
+
 # [기술 사양서 및 기업 프로필] 트위니 (Twinny Co., Ltd.)
 
 ## 1. 기업 기본 정보 (Company Profile)

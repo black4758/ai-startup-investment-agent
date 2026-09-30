@@ -1,13 +1,15 @@
 ---
 company: marsauto
 doc_type: company
-source: 언론 보도 및 창업자 인터뷰 종합 (팀 자체 정리)
+source: 마스오토 공식 웹사이트, THE VC, 감사 공시 및 인터뷰 종합
+url: https://marsauto.com
 date: 2026-09-29
 ---
 # [기업 프로필, 투자 이력, 수익 모델] (주)마스오토
 
 * **기업명**: (주)마스오토 (MARS AUTO)
 * **도메인**: Physical AI / 자율주행 (대형 트럭 자율주행, 미들마일 화물운송)
+* **공식 웹사이트**: https://marsauto.com
 * **표기**: [회사 발표]는 회사 측 주장 또는 자체 집계 수치
 
 ---
@@ -127,3 +129,15 @@ date: 2026-09-29
 | 현대모비스 | 미국 운송 화주 | 롱비치항~조지아 현대모비스 공장 부품 운송, 팀 코리아 |
 | LX판토스 | 미국 운송 협력 | 대륙횡단 노선 왕복 확대 협력, 팀 코리아 |
 | KEIT 컨소시엄 13개 기관 | 국책 과제 공동 수행 | 고객 계약 아님 |
+
+---
+
+## 8. 참고문헌 (REFERENCE)
+
+- 마스오토 공식 웹사이트. https://marsauto.com
+- THE VC(조회 2026-09-29). *(주)마스오토 기업정보*. [THE VC](https://thevc.kr/marsauto)
+- 사람인 / NICE평가정보(조회 2026-09-29). *(주)마스오토 기업 및 재무정보*. [사람인](https://m.saramin.co.kr/amp/finance-company-info?csn=eTExSU8yQXhoVkJXZWQwOWRMRjJuZz09)
+- 포브스코리아(2020-09-24). *[자율주행 분야의 딥테크 강자들] 박일수 마스오토 대표*. [포브스코리아](http://www.forbeskorea.co.kr/news/articleView.html?idxno=331457)
+- 로봇신문(2022-03-31). *자율주행 트럭 스타트업 마스오토, 150억원 규모 시리즈A 투자 유치*. [로봇신문](https://www.irobotnews.com/news/articleView.html?idxno=28095)
+- 서울경제(2026-04-15). *자율주행 트럭으로 美 횡단, 7년 공들인 AI 빛났다 [스케일업 리포트]*. [서울경제](https://www.sedaily.com/article/20032981)
+
