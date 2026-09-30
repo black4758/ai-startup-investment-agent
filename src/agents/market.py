@@ -5,8 +5,8 @@
 평가 항목: 시장 내 포지션 및 진입장벽(15%), 시장성(10%)
 
 설계 원칙
-- 이 에이전트만 company 필터를 쓰지 않는다. 시장 자료는 5개사가 공유하는
-  공통 문서이므로 doc_type == "market" 으로만 거른다.
+- 시장 자료는 5개사가 공유하는 공통 문서이므로 doc_type == "market" 으로 거르되,
+  company 는 "common" 또는 현재 기업만 허용해 다른 기업 전용 시장 문서가 섞이지 않게 한다.
 - 추출은 모델이, 검증은 코드가 한다. 인용문이 실제 문서에 있는지 대조하고,
   정보 부재 항목은 코드가 2점으로 강제한다.
 - 파싱에 실패해도 그래프가 멈추지 않는다. 2점 처리하고 넘어간다.
@@ -23,6 +23,7 @@ from langchain_openai import ChatOpenAI
 
 from src.state import GraphState
 from src.vectorstore import build_vectorstore, search_documents
+from src.agents.tech import normalize_company_name
 
 _VECTORSTORE = None
 
@@ -48,10 +49,14 @@ def _get_vectorstore():
 
 
 def retrieve_market_docs(vectorstore, startup: str, k: int = TOP_K):
-    """시장 문서만 검색한다. company 필터를 걸면 0건이 나온다."""
+    """시장 문서만 검색한다.
+    공통 시장 문서(common)와 현재 기업의 시장 문서만 허용해,
+    다른 기업 전용 시장 문서(예: marsauto_market)가 섞이지 않게 한다."""
     query = (f"{startup} 시장 규모 TAM 연평균 성장률 CAGR 전망 "
              "규제 정책 진입 장벽 경쟁 구도")
-    return search_documents(vectorstore, query, doc_types="market", k=k)
+    company_key = normalize_company_name(startup)
+    return search_documents(vectorstore, query, company=["common", company_key],
+                            doc_types="market", k=k)
 
 
 def format_docs(docs) -> str:
