@@ -1,6 +1,7 @@
 import os
 import json
 from datetime import datetime
+from markdown_pdf import Section, MarkdownPdf
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
@@ -36,13 +37,17 @@ def report_agent(state: dict) -> dict:
     
     report_content = response.content
 
-    # 5. 지정된 경로에 마크다운 파일로 저장
+    # 5. 지정된 경로에 PDF 파일로 저장
     os.makedirs("outputs", exist_ok=True)
-    today_str = datetime.now().strftime("%Y%m%d")
-    file_path = f"outputs/RAG-Output_울산-2반_{today_str}.md"
     
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(report_content)
+    # 팀 제출 규격에 맞춘 파일명[cite: 4]
+    file_name = "RAG-Output_울산-2반_우성윤+이진서+김지훈+김영제+서승현.pdf"
+    pdf_file_path = os.path.join("outputs", file_name)
+    
+    # 마크다운 텍스트를 PDF로 변환
+    pdf = MarkdownPdf(toc_level=0)
+    pdf.add_section(Section(report_content))
+    pdf.save(pdf_file_path)
 
     # 6. 다음 노드를 위해 State 업데이트 반환
     return {"report": report_content}
