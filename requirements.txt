@@ -7,3 +7,5 @@ faiss-cpu
 sentence-transformers
 pypdf
 python-dotenv
+tiktoken
+markdown-pdf

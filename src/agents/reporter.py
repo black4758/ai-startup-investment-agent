@@ -5,7 +5,7 @@ from markdown_pdf import Section, MarkdownPdf
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
-def report_agent(state: dict) -> dict:
+def generate_report(state: dict) -> dict:
     # 1. State에서 필요한 데이터 추출
     evaluations = state.get("evaluations", [])
     tech_analysis = state.get("tech_analysis", "")
