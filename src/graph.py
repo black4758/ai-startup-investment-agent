@@ -101,11 +101,9 @@ def save_evaluation(state: GraphState) -> Dict[str, Any]:
         "sources": list(state.get("sources") or []),
     }
 
-    print(f"[Save Evaluation] '{startup}' 최종 결과 저장 완료: {total}점 ({decision})")
-
-    return {
-        "evaluations": [eval_record]
-    }
+    print(f"[Save Evaluation] '{startup}' 최종 결과 저장 완료: ...")
+    
+    return {}   # 기록은 judge가 판정 확정 시 evaluations에 직접 추가
 
 
 # ─────────────────────────────────────────────────────────────────────────────

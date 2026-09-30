@@ -1,8 +1,17 @@
+---
+company: common
+doc_type: market
+source: 한국로봇산업진흥원 (KIRIA)
+url: https://www.kiria.org
+date: 2024-05-01
+---
+
 # [KIRIA 정책·산업 동향 리포트] 글로벌 지능형 물류로봇 및 Physical AI 시장 전망
 
 * **발행기관**: 한국로봇산업진흥원 (KIRIA) 정책기획팀 & 삼정KPMG 경제연구원
 * **발간일**: 2024년 5월 (KIRIA ISSUE REPORT 제2024-05호)
 * **공식 표기(Reference)**: 한국로봇산업진흥원(2024). *글로벌 지능형 물류로봇 및 Physical AI 시장 동향과 정책 시사점*. KIRIA 이슈리포트, 2024(5), 1-48.
+* **URL**: https://www.kiria.org
 
 ---
 

@@ -51,3 +51,7 @@ def generate_report(state: dict) -> dict:
 
     # 6. 다음 노드를 위해 State 업데이트 반환
     return {"report": report_content}
+
+
+# 하위 호환성 별칭
+report_agent = generate_report
