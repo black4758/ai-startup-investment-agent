@@ -11,3 +11,5 @@ torch
 pypdf
 python-dotenv
 tiktoken
+markdown-pdf
+
