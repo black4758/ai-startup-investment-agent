@@ -2,6 +2,7 @@
 company: twinny
 doc_type: comprehensive
 source: 트위니 회사소개서 2026 (TWINNY_CompanyProfile_KO)
+url: https://twinny.ai/downloads
 date: 2026-05-01
 ---
 
