@@ -2,6 +2,7 @@
 company: common
 doc_type: market
 source: 소프트웨어정책연구소 (SPRi)
+url: https://www.spri.kr/posts/view/23873?code=data_all&study_type=issue_reports
 date: 2025-05-13
 ---
 
@@ -11,6 +12,7 @@ date: 2025-05-13
 * **발간일**: 2025.05.13 (ISSUE REPORT IS-202)
 * **지원기관**: 과학기술정보통신부 정보통신진흥기금
 * **공식 표기(Reference)**: 이해수, 유재흥, 안성원(2025). *피지컬 AI의 현황과 시사점*. SPRi 이슈리포트, IS-202, 1-41.
+* **URL**: https://www.spri.kr/posts/view/23873?code=data_all&study_type=issue_reports
 
 
 ---

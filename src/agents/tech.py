@@ -178,10 +178,17 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
     context_parts = []
     collected_sources = []
     for i, doc in enumerate(docs, 1):
-        src_label = doc.metadata.get("source") or doc.metadata.get("file_name") or "문서"
+        meta = doc.metadata
+        title = meta.get("title") or meta.get("source") or meta.get("file_name") or "문서"
+        date = meta.get("date", "")
+        url = meta.get("url", "")
+
+        src_label = f"{title} ({date})" if date and date not in title else title
+        if url:
+            src_label += f". {url}"
         collected_sources.append(src_label)
         snippet = (
-            f"[참고자료 {i}] (출처: {src_label}, 문서유형: {doc.metadata.get('doc_type', '')})\n"
+            f"[참고자료 {i}] (출처: {src_label}, 문서유형: {meta.get('doc_type', '')})\n"
             f"{doc.page_content}\n"
         )
         context_parts.append(snippet)
@@ -219,8 +226,8 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
     if not isinstance(sources, list):
         sources = [str(sources)]
 
-    # 문서에서 수집한 출처도 포함 (중복 제거 유지)
-    all_sources = list(dict.fromkeys(sources + [s for s in collected_sources if s]))
+    # 문서에서 수집한 출처(URL 포함) 우선 반영 (중복 제거 유지)
+    all_sources = list(dict.fromkeys([s for s in collected_sources if s] + sources))
 
     print(f"\n[Tech Agent] '{startup}' 기술성 평가 완료:")
     print(f"  - 기술차별성및특허(tech_differentiation): {tech_scores.get('tech_differentiation')}점 / 5.0")

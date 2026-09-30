@@ -1,12 +1,14 @@
 ---
 company: marsauto
 doc_type: market
-source: 언론 보도, 경쟁사 공시 종합 (팀 자체 정리)
+source: 대형 트럭 자율주행 시장 분석, SEC 공시 및 글로벌 경쟁사 동향
+url: https://marsauto.com
 date: 2026-09-29
 ---
 # [시장 포지션, 경쟁 구도, 규제 환경] 마스오토가 속한 대형 트럭 자율주행 시장
 
 * **대상 기업**: (주)마스오토 (MARS AUTO)
+* **공식 웹사이트**: https://marsauto.com
 * **시장**: 대형 트럭 자율주행, 미들마일(중간물류) 장거리 화물운송
 * **표기**: [회사 발표]는 회사 측 주장 또는 자체 집계 수치
 
@@ -72,3 +74,15 @@ date: 2026-09-29
 * 규제 허가(임시운행허가, 실증특례, 유상 운송 허가) 확보에 시간이 걸림
 * 대형 트럭 특화 제어 기술과 대규모 실주행 데이터 축적 필요
 * 물류 대기업과의 운송 계약 레퍼런스 필요
+
+---
+
+## 5. 참고문헌 (REFERENCE)
+
+- 마스오토 공식 웹사이트: https://marsauto.com
+- Aurora Innovation(2026). *Second Quarter 2026 Shareholder Letter*. [SEC EDGAR](https://www.sec.gov/Archives/edgar/data/0001828108/000182810826000075/aurora26q2shareholderlet.htm)
+- Morningstar(2026-06-10). *Autonomous Trucking Stock Aurora Is Finally Hitting the Fast Lane*. [Morningstar](https://www.morningstar.com/stocks/autonomous-trucking-stock-aurora-is-finally-hitting-fast-lane)
+- New Market Pitch(2026-07-31). *Autonomous trucks: which startup is ahead?*. [New Market Pitch](https://newmarketpitch.com/blogs/news/autonomous-vehicle-trucking-startup)
+- FleetRabbit(2026-02-23). *Autonomous Truck Fleet Management 2026*. [FleetRabbit](https://fleetrabbit.com/blogs/post/autonomous-truck-fleet-management-2026)
+- 아시아경제(2026-07-09). *한진, 국내 첫 자율주행 화물차 유상 운송 시작*. [아시아경제](https://view.asiae.co.kr/article/2026070916443098023)
+

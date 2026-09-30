@@ -1,7 +1,8 @@
 ---
 company: twinny
 doc_type: company
-source: (주)트위니 연도별 재무제표 및 매출 현황 보고서
+source: 금융감독원 전자공시시스템(DART) 및 삼일회계법인 감사보고서
+url: https://dart.fss.or.kr
 date: 2026-01-01
 ---
 
