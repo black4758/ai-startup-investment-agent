@@ -174,6 +174,18 @@ def retrieve_for_item(vectorstore: Any, company_key: str, item: str, query: str)
     return (matched + others)[:TOP_K]
 
 
+def _parse_refs(values: Any, num_docs: int) -> List[int]:
+    """LLM이 적은 참고자료 번호 목록에서 유효한 번호(1~num_docs)만 정수로 추출합니다."""
+    if not isinstance(values, list):
+        values = [values]
+    refs = []
+    for v in values:
+        match = re.search(r"\d+", str(v))
+        if match and 1 <= int(match.group()) <= num_docs:
+            refs.append(int(match.group()))
+    return refs
+
+
 def parse_llm_json_response(raw_text: str) -> Dict[str, Any]:
     """
     LLM의 응답에서 JSON 블록을 안전하게 추출 및 파싱합니다.
@@ -206,7 +218,6 @@ def parse_llm_json_response(raw_text: str) -> Dict[str, Any]:
             for key in SCORE_KEYS
         },
         "missing_items": list(SCORE_KEYS.values()),
-        "sources": [],
     }
 
 
@@ -335,28 +346,28 @@ def evaluate_company(state: GraphState, vectorstore: Optional[Any] = None) -> Di
 
     company_scores, missing_items = apply_scoring_rules(evaluation, llm_missing)
 
-    # 항목별 채점 근거를 분석 텍스트에 덧붙여 판단/보고서 에이전트가 감점 사유를 참조할 수 있게 함
+    # 항목별 채점 근거와 근거 섹션을 분석 텍스트에 덧붙여 판단/보고서 에이전트가 감점 사유를 참조할 수 있게 함
     company_analysis = str(parsed_data.get("company_analysis", "")).strip()
     rationale_lines = []
+    used_refs: List[int] = []  # 항목별로 LLM이 근거로 명시한 참고자료 번호
     for key, kor in SCORE_KEYS.items():
         ev = evaluation.get(key) or {}
-        if isinstance(ev, dict) and ev.get("basis"):
+        if not isinstance(ev, dict):
+            continue
+        refs = _parse_refs(ev.get("refs", []), len(docs))
+        used_refs.extend(refs)
+        if ev.get("basis"):
+            # 참고자료 번호는 에이전트 내부에서만 의미가 있으므로 소제목으로 바꿔 기록
+            sections = ", ".join(dict.fromkeys(_section_title(docs[r - 1]) or "본문" for r in refs)) or "-"
             rationale_lines.append(
-                f"- {kor} {company_scores[key]}점 [{ev.get('type', '-')}]: {ev.get('basis')} / {ev.get('criterion', '')}"
+                f"- {kor} {company_scores[key]}점 [{ev.get('type', '-')}]: {ev.get('basis')} "
+                f"/ {ev.get('criterion', '')} (근거 섹션: {sections})"
             )
     if rationale_lines:
         company_analysis += "\n\n[항목별 채점 근거]\n" + "\n".join(rationale_lines)
 
-    # LLM이 실제로 사용했다고 답한 참고자료 번호만 출처로 기록 (REFERENCE는 실제 활용 자료만)
-    cited = parsed_data.get("sources", [])
-    if not isinstance(cited, list):
-        cited = [cited]
-    used_sources = []
-    for c in cited:
-        match = re.search(r"\d+", str(c))
-        if match and 1 <= int(match.group()) <= len(doc_sources):
-            used_sources.append(doc_sources[int(match.group()) - 1])
-    # 번호 인용이 없으면 검색된 전체 문서 출처로 대체
+    # 항목별 근거로 쓰인 참고자료만 출처로 기록 (REFERENCE는 실제 활용 자료만), 번호 인용이 없으면 검색된 전체 문서로 대체
+    used_sources = [doc_sources[r - 1] for r in used_refs]
     all_sources = list(dict.fromkeys(used_sources or doc_sources))
 
     # 재평가 시 1차 평가에서 이미 기록된 정보 부재 항목은 중복 누적하지 않음 (missing_items는 누적 필드)
