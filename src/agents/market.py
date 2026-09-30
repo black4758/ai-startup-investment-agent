@@ -105,13 +105,21 @@ def verify_quotes(analysis: str, docs) -> tuple[list, list]:
 
 def collect_sources(docs) -> list[str]:
     """출처는 모델이 쓴 것이 아니라 실제 검색된 문서에서 코드가 만든다.
-    모델이 출처 제목을 지어내면 보고서 REFERENCE가 오염되기 때문이다."""
+    모델이 출처 제목을 지어내면 보고서 REFERENCE가 오염되기 때문이다.
+
+    보고서 생성 에이전트가 참고문헌 링크를 만들 수 있도록 URL을 함께 담는다.
+    형식: "문서명 (URL)" — URL이 없으면 문서명만.
+    """
     seen, out = set(), []
     for d in docs:
         title = d.metadata.get("title") or d.metadata.get("source")
-        if title and title not in seen:
-            seen.add(title)
-            out.append(str(title))
+        if not title:
+            continue
+        url = d.metadata.get("url")
+        label = f"{title} ({url})" if url else str(title)
+        if label not in seen:
+            seen.add(label)
+            out.append(label)
     return out
 
 
