@@ -115,4 +115,22 @@ def evaluate_judge(state: "GraphState") -> Dict[str, Any]:
     print(f"[투자 판단] 총점 {total} / 판정 {decision} / {'과락 발생' if cutoff else '과락 없음'}")
     print(reason)
 
-    return {"total_score": total, "decision": decision}
+    result: Dict[str, Any] = {"total_score": total, "decision": decision}
+
+    # 판정 확정 시에만 evaluations에 기록 (설계 D.1: evaluations 기록 노드 = 투자 판단 에이전트)
+    # HOLD 첫 판정(retry_count == 0)은 재평가로 가므로 아직 기록하지 않음
+    is_final = not (decision == "HOLD" and state.get("retry_count", 0) == 0)
+    if is_final:
+        # evaluations는 operator.add 누적 필드라 [새 기록]만 반환하면 자동으로 쌓임
+        result["evaluations"] = [{
+            "startup": state.get("current_startup", ""),
+            "total_score": total,
+            "decision": decision,
+            "decision_reason": reason,
+            "scores": scores,
+            "tech_analysis": state.get("tech_analysis", ""),
+            "company_analysis": state.get("company_analysis", ""),
+            "market_analysis": state.get("market_analysis", ""),
+        }]
+
+    return result
