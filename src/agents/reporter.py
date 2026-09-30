@@ -19,12 +19,23 @@ def generate_report(state: dict) -> dict:
 
     prompt = PromptTemplate.from_template(prompt_template)
     
-    # 3. LLM 초기화 (프로젝트 환경에 맞춰 모델명 변경 가능)
+    # 3. LLM 초기화
     llm = ChatOpenAI(model="gpt-4o", temperature=0)
     chain = prompt | llm
     
-    # 출처 중복 제거 및 문자열 변환
-    unique_sources = "\n".join(dict.fromkeys(sources)) if sources else "정보 없음"
+    # 출처 중복 제거 및 리스트/링크 형태로 정돈
+    if sources:
+        cleaned_sources = []
+        for s in dict.fromkeys(sources):
+            if isinstance(s, dict):
+                title = s.get("title", "참고 문서")
+                url = s.get("url", "#")
+                cleaned_sources.append(f"- [{title}]({url})")
+            else:
+                cleaned_sources.append(f"- {s}")
+        unique_sources = "\n".join(cleaned_sources)
+    else:
+        unique_sources = "정보 없음"
     
     # 4. 보고서 생성 실행
     response = chain.invoke({
@@ -37,21 +48,24 @@ def generate_report(state: dict) -> dict:
     
     report_content = response.content
 
-    # 5. 지정된 경로에 PDF 파일로 저장
+    # 5. outputs 폴더 및 파일 경로 설정 (타임스탬프 적용)
     os.makedirs("outputs", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    base_name = f"RAG-Output_울산-2반_우성윤+이진서+김지훈+김영제+서승현_{timestamp}"
     
-    # 팀 제출 규격에 맞춘 파일명[cite: 4]
-    file_name = "RAG-Output_울산-2반_우성윤+이진서+김지훈+김영제+서승현.pdf"
-    pdf_file_path = os.path.join("outputs", file_name)
-    
-    # 마크다운 텍스트를 PDF로 변환
-    pdf = MarkdownPdf(toc_level=0)
+    # 5-1. Markdown 파일(.md) 저장
+    md_file_path = os.path.join("outputs", f"{base_name}.md")
+    with open(md_file_path, "w", encoding="utf-8") as f:
+        f.write(report_content)
+
+    # 5-2. PDF 파일(.pdf) 저장
+    pdf_file_path = os.path.join("outputs", f"{base_name}.pdf")
+    pdf = MarkdownPdf(toc_level=2)
     pdf.add_section(Section(report_content))
     pdf.save(pdf_file_path)
 
     # 6. 다음 노드를 위해 State 업데이트 반환
-    return {"report": report_content}
-
+    return {"report": report_content, "md_file_path": md_file_path, "pdf_file_path": pdf_file_path}
 
 # 하위 호환성 별칭
 report_agent = generate_report
