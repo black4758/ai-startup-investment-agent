@@ -1,12 +1,14 @@
 ---
 company: marsauto
 doc_type: tech
-source: 언론 보도, 학술지, 창업자 인터뷰 종합 (팀 자체 정리)
+source: 마스오토 공식 웹사이트, 학술지 및 기술 인터뷰 종합
+url: https://marsauto.com
 date: 2026-09-29
 ---
 # [기술 사양, 제품, 도입 효과] (주)마스오토 자율주행 기술
 
 * **기업명**: (주)마스오토 (MARS AUTO)
+* **공식 웹사이트**: https://marsauto.com
 * **표기 원칙**: [회사 발표]는 회사 측 주장 또는 자체 집계 수치
 
 ---
@@ -102,3 +104,13 @@ date: 2026-09-29
 * 데이터 수집 차량: 자체 유상운송 트럭 15대 외에 물류 파트너사 트럭 등 총 **250여 대**에 마스박스를 탑재하여 플라이휠 가동
 * 장기 데이터 목표: 누적 1억 km 학습 데이터 파이프라인 구축 (산업부 182억 KEIT 국책과제 연계)
 * 한국 도로 데이터로만 사전 학습된 AI 모델을 별도 파라미터 재학습 없이 미국 텍사스 및 대륙횡단 도로에 투입해 즉시 주행에 성공함으로써 모델의 일반화(Generalization) 성능을 입증했다고 발표
+
+---
+
+## 9. 참고문헌 (REFERENCE)
+
+- 마스오토 공식 웹사이트: https://marsauto.com
+- 노제경(2023). 미들마일 물류 시장에서의 대형 트럭 자율주행 기술 개발 및 도입 동향. *한국통신학회지(정보와통신)*.
+- AVING NEWS(2023-08-17). *Mars Auto Introduced 'Mars Pilot', an Autonomous Driving System for Trucks, at CES 2023*. [AVING](https://us.aving.net/news/articleView.html?idxno=50042)
+- 플래텀(2026-07-03). *라이다 대신 카메라, 로보택시 대신 트럭, 마스오토의 9년*. [플래텀](https://platum.kr/archives/290155)
+- 메트로신문(2026-08-13). *마스오토, AI 자율주행 모델 탑재 대형 트럭 실물 첫 공개*. [메트로신문](https://www.metroseoul.co.kr/article/20260813500460)

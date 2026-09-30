@@ -2,12 +2,14 @@
 company: common
 doc_type: market
 source: 삼정KPMG, MarketsandMarkets, Allied Market Research, Astute Analytica, 국토교통부
+url: https://kpmg.com/kr
 date: 2026-09-29
 ---
 # [공통 시장 자료] 자율주행차 및 자율주행 트럭 시장 규모와 성장률
 
 * **적용 대상**: 자율주행 기술 기반 기업 (대형 트럭 자율주행, 인프라 기반 자율주행 등)
 * **작성 원칙**: 발행 기관이 확인된 수치만 수록. 시장 정의(범위)를 함께 표기
+* **대표 URL**: https://kpmg.com/kr
 
 ---
 
@@ -50,3 +52,16 @@ date: 2026-09-29
 * 국토교통부 2026 업무계획은 국내 최초 자율주행 실증도시 조성(2026년 광주, 자율차 200대 실증), 원본영상 활용 허용 등 규제 합리화, 임시운행허가 절차 간소화, 안전기준 특례를 통해 2027년 레벨4 자율주행 상용화를 추진한다고 밝힘
 * 2026년 4월 국토교통부가 국내 최초로 자율주행 자동차 유상 화물 운송을 허가함 (화물 운송 분야로 실증 확대)
 * 유의: 무인 화물 운송 전환을 위해서는 사고 책임 소재 등 제도 정비가 남아 있음
+
+---
+
+## 5. 참고문헌 (REFERENCE)
+
+- 삼정KPMG(2026). *자율주행의 서막, 로보택시 시장의 경쟁 전략*. [서울경제](https://m.sedaily.com/article/20011333)
+- 삼정KPMG(2020). *자율주행이 만드는 새로운 변화*. [이데일리](https://edaily.co.kr/news/read?mediaCodeNo=E&newsId=03565366625674456)
+- 국토교통부(2026). *2026 업무계획*. [국토교통부](https://www.molit.go.kr/2026plan/sub2_economy.html)
+- MarketsandMarkets(2026-06-30). *Autonomous Trucks Market worth $158.69 billion by 2035*. [PR Newswire](https://www.prnewswire.com/news-releases/autonomous-trucks-market-worth-158-69-billion-by-2035--marketsandmarkets-302814229.html)
+- Allied Market Research. *Self-Driving Truck Market Size Worth $41.2 Billion by 2035*. [Allied Market Research](https://www.alliedmarketresearch.com/press-release/self-driving-truck-market.html)
+- Astute Analytica(2026). *Autonomous Trucking Market Size, Growth [2035]*. [Astute Analytica](https://www.astuteanalytica.com/industry-report/autonomous-trucking-market)
+- 쿠키뉴스(2026-07-01). *국내 첫 자율주행 화물차 고속도로 유상 운송*. [쿠키뉴스](https://www.kukinews.com/article/view/kuk202607010217)
+

@@ -10,6 +10,7 @@
    - company: twinny / neubility / seoulrobotics / marsauto / xyz / common (시장 문서는 common)
    - doc_type: tech / company / news / market / comprehensive
    - source: 발행기관, 언론사 또는 공식 출처
+   - url: 원문 웹페이지/공시 링크 (REFERENCE 하이퍼링크 생성용)
    - date: 발행일 (YYYY-MM-DD 또는 YYYY-MM)
 3. 소제목 기반 지능형 청킹:
    - Markdown: MarkdownHeaderTextSplitter로 소제목(#, ##, ###) 단위 1차 분할 후, 1,500자 초과 시 재분할
@@ -87,6 +88,7 @@ def extract_metadata(file_path: str, content: str = "") -> Dict[str, Any]:
       - company: twinny / neubility / seoulrobotics / marsauto / xyz / common
       - doc_type: tech / company / news / market / comprehensive
       - source: 발행기관, 언론사, 또는 출처 표기 (보고서 REFERENCE 작성용)
+      - url: 원문 링크 (웹페이지, 공시, 보도자료 URL)
       - date: 발행일 (YYYY-MM-DD 또는 YYYY-MM)
       - file_name: 파일명
       - file_path: 파일 전체 상대 경로
@@ -143,6 +145,7 @@ def extract_metadata(file_path: str, content: str = "") -> Dict[str, Any]:
 
     source = ""
     date = ""
+    url = ""
 
     # ─────────────────────────────────────────────────────────────────
     # 3. YAML Frontmatter가 존재하는 마크다운 문서 파싱
@@ -161,25 +164,42 @@ def extract_metadata(file_path: str, content: str = "") -> Dict[str, Any]:
                         doc_type = val
                     elif key == "source" and val:
                         source = val
+                    elif key == "url" and val:
+                        url = val
                     elif key == "date" and val:
                         date = val
 
     # ─────────────────────────────────────────────────────────────────
-    # 4. 본문 정규식 패턴을 통한 출처(source) 및 발행일(date) 보완 추출
+    # 4. 본문 정규식 패턴을 통한 출처(source), 레퍼런스(reference), URL 및 발행일(date) 추출
     # ─────────────────────────────────────────────────────────────────
-    if not source and content:
-        source_match = re.search(r"\*\s*\*\*(?:출처|발행기관|공식 표기\(Reference\))\*\*:\s*([^\n\r]+)", content)
-        if source_match:
-            source = source_match.group(1).strip()
+    reference = ""
+    if content:
+        # 공식 표기(Reference) 추출
+        ref_match = re.search(r"\*\s*\*\*공식 표기\(Reference\)\*\*:\s*([^\n\r]+)", content)
+        if ref_match:
+            reference = ref_match.group(1).strip()
 
-    if not date and content:
-        date_match = re.search(r"\*\s*\*\*(?:발간일|발행일|기준일)\*\*:\s*([^\n\r]+)", content)
-        if date_match:
-            date = date_match.group(1).strip()
-        else:
-            d_match = re.search(r"\((\d{4}[-.]\d{2}[-.]\d{2})\)", content[:1000])
-            if d_match:
-                date = d_match.group(1)
+        # 발행기관 또는 출처 추출
+        if not source:
+            source_match = re.search(r"\*\s*\*\*(?:출처|발행기관)\*\*:\s*([^\n\r]+)", content)
+            if source_match:
+                source = source_match.group(1).strip()
+
+        # URL 추출
+        if not url:
+            url_match = re.search(r"\*\s*\*\*URL\*\*:\s*([^\n\r]+)", content)
+            if url_match:
+                url = url_match.group(1).strip()
+
+        # 발행일 추출
+        if not date:
+            date_match = re.search(r"\*\s*\*\*(?:발간일|발행일|기준일)\*\*:\s*([^\n\r]+)", content)
+            if date_match:
+                date = date_match.group(1).strip()
+            else:
+                d_match = re.search(r"\((\d{4}[-.]\d{2}[-.]\d{2})\)", content[:1000])
+                if d_match:
+                    date = d_match.group(1)
 
     # ─────────────────────────────────────────────────────────────────
     # 5. 기본값 Fallback
@@ -209,10 +229,16 @@ def extract_metadata(file_path: str, content: str = "") -> Dict[str, Any]:
     if company in ("seoul_robotics", "seoul robotics"):
         company = "seoulrobotics"
 
+    # reference가 없을 경우: source 기반 생성
+    if not reference:
+        reference = source
+
     return {
         "company": company,
         "doc_type": doc_type,
         "source": source,
+        "reference": reference,
+        "url": url,
         "date": date,
         "file_name": os.path.basename(file_path),
         "file_path": file_path,
@@ -262,7 +288,12 @@ def load_markdown_file(file_path: str) -> List[Document]:
         sub_chunks = char_splitter.split_text(split_doc.page_content)
         for chunk in sub_chunks:
             if chunk.strip():
-                final_docs.append(Document(page_content=chunk.strip(), metadata=merged_meta))
+                chunk_meta = dict(merged_meta)
+                # 청크 본문에 구체적인 링크(기사/특허/공시)가 포함되어 있다면 메타데이터 URL 세분화
+                chunk_urls = re.findall(r'https?://[^\s)\]"\'>]+', chunk)
+                if chunk_urls:
+                    chunk_meta["url"] = chunk_urls[0]
+                final_docs.append(Document(page_content=chunk.strip(), metadata=chunk_meta))
 
     return final_docs
 

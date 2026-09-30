@@ -1,7 +1,8 @@
 ---
 company: neubility
 doc_type: comprehensive
-source: 뉴빌리티 기업 조사 자료 (NEUBILITY_CompanyProfile_KO)
+source: 뉴빌리티 기업 조사 보고서 (공식 뉴스룸, DART, THE VC, 언론보도 종합)
+url: https://www.neubility.ai/ko/discover
 date: 2026-09-29
 ---
 
@@ -439,9 +440,54 @@ Starship은 로봇 3,000대 이상, 누적 1,000만 건 배달로 규모가 수�
 
 ## 14. 참고문헌 (REFERENCE)
 
-기업 공식 자료 뉴빌리티(2026). 회사소개(Our History, Partners). 뉴빌리티 공식 홈페이지, https://www.neubility.ai/ko/ about 뉴빌리티(2026). 솔루션. 뉴빌리티 공식 홈페이지, https://www.neubility.ai/ko/solution 13 뉴빌리티(2025-06-24). 뉴빌리티 로봇 '뉴비', 산업현장 누빈다…'자율주행 배달' 공급. 뉴빌리티 뉴스룸, https:// www.neubility.ai/ko/discover/detail?id=145 뉴빌리티(2025-08-11). 뉴빌리티, 피지컬 AI 기술로 '실용형 휴머노이드' 상용화 가속. 뉴빌리티 뉴스룸, https:// www.neubility.ai/ko/discover/detail?id=147 뉴빌리티(2025-10-13). 김정관 장관, 뉴빌리티 방문해 "배송로봇 인증 절차 연내 개선". 뉴빌리티 뉴스룸, https://www.neubility.ai/ko/discover/detail?id=148 뉴빌리티(2025-11-25). 판교역에 AI 순찰로봇 뜬다…성남시, 자율주행 '뉴비' 배치. 뉴빌리티 뉴스룸, https:// www.neubility.ai/ko/discover/detail?id=150 뉴빌리티(2025-12-24). 뉴빌리티, 2025년 로봇 상용화 성과 공개. 뉴빌리티 뉴스룸, https://www.neubility.ai/ ko/discover/detail?id=152 뉴빌리티(2026-02-13). 뉴빌리티, NH투자증권과 IPO 주관 계약 체결. 뉴빌리티 뉴스룸, https:// www.neubility.ai/ko/discover/detail?id=153 뉴빌리티(2026-07-03). 뉴빌리티, 유니트리와 휴머노이드 로봇 솔루션 공동 개발 MOU 체결. 뉴빌리티 뉴스룸, https://www.neubility.ai/ko/discover/detail?id=158 뉴빌리티(2026-09-17). 뉴빌리티, 덕수궁 순찰부터 도쿄 시내 배달까지…'공간 RFM' 전략 본격화. 뉴빌리티 뉴스 룸, https://www.neubility.ai/ko/discover/detail?id=159 NEOM(2023). Neubility – Oxagon Accelerator. NEOM, https://www.neom.com/en-us/regions/oxagon/ oxagon-accelerator/neubility 기관 보고서 MarketsandMarkets(2025). Delivery Robots Market worth $3,236.5 million by 2030. https:// www.marketsandmarkets.com/PressReleases/delivery-robot.asp Grand View Research(2024). Security Robots Market Size, Share & Trends Report, 2030. https:// www.grandviewresearch.com/industry-analysis/security-robots-market-report Counterpoint Research(2026). 피지컬 AI 기기 누적 출하 1억 4,500만 대 전망. https:// counterpointresearch.com/ko/insights/cumulative-physical-ai-device-shipments-to-reach-145- million-units-by-2025 한국로봇산업진흥원(2026). 실외이동로봇 운행안전인증. https://www.kiria.org/portal/cert/ portalCertEstiSafe.do 학술 논문 최성록 외(2019). 제4차 산업혁명 시대의 물류/배송로봇의 동향 및 시사점. 전자통신동향분석, 34(4), 99-107.
-웹페이지(언론 기사) ZDNet Korea(2025-12-09). 뉴빌리티, 251억원 시리즈B 투자 유치. ZDNet Korea, https://zdnet.co.kr/ view/?no=20251209221233 인공지능신문(2025-12-10). 뉴빌리티, 251억 원 시리즈 B 투자 유치. 인공지능신문, https://www.aitimes.kr/ news/articleView.html?idxno=37637 한국일보(2025-03-18). 별 보는 청년, 배달로봇을 만들다 이상민 뉴빌리티 대표. 한국일보, https:// www.hankookilbo.com/News/Read/A2025031711130002923 블로터(2025). 젠슨 황도 점 찍었다…이상민 뉴빌리티 대표가 꿈꾸는 미래는. 블로터, https://www.bloter.net/ news/articleView.html?idxno=624687 블로터(2024). 로봇 배송 시대 눈 앞…로보티즈·뉴빌리티 상용화 잰걸음. 블로터, https://www.bloter.net/ news/articleView.html?idxno=622336 14 이투데이(2026-05-04). 강기혁 뉴빌리티 대표 "배달 넘어 순찰·제조로". 이투데이, https://www.etoday.co.kr/ news/view/2581014 EBN(2026-08-04). 뉴빌리티, AI 순찰로봇 글로벌 보안시장 출사표. EBN, https://www.ebn.co.kr/news/ articleView.html?idxno=1719070 스마트투데이(2026-08-10). 주차장 누비는 'AI 경비원'…뉴빌리티 순찰로봇 상용화. 스마트투데이, https:// www.smarttoday.co.kr/ko-kr/articles/110277 EBN(2026-09). 뉴빌리티, 하이브리드 휴머노이드 '빌리' 공개. EBN, https://www.ebn.co.kr/news/ articleView.html?idxno=1726021 데일리안(2026-09-29). "춤추는 휴머노이드 필요없다"…뉴빌리티가 '두 다리' 버린 이유. 데일리안, https:// www.dailian.co.kr/news/view/1695632 뉴스1(2026-09-29). 배달로봇 '뉴비' 데이터 '빌리'로…뉴빌리티, 조작·물류 피지컬AI 겨냥. 뉴스1, https:// www.news1.kr/industry/sb-founded/6304456 서울경제TV(2026-08-07). 도로 달리는 배민 '딜리'…배달·물류, 자율주행 경쟁 본격화. 서울경제TV, https:// www.sentv.co.kr/article/view/sentv202608070091 CEO스코어데일리(2026-05-12). 배민 vs 요기요, 로봇배달 경쟁 점화. CEO스코어데일리, https:// www.ceoscoredaily.com/page/view/2026051216363190481 AI타임스(2024-11-10). 로보티즈 "배송로봇에 '팔' 붙였더니 활용도 증가". AI타임스, https:// www.aitimes.com/news/articleView.html?idxno=165106 AI타임스(2023-11). 실외이동로봇 시대 개막…개정 지능형로봇법 17일 시행. AI타임스, https:// www.aitimes.com/news/articleView.html?idxno=155217 뉴스핌(2026-05-29). 대구시, 실외이동로봇 안전인증 문턱 낮춘다. 뉴스핌, https://www.newspim.com/ news/view/20260529000538 한국경제(2026-06-03). 피지컬 AI시장, 10년 내 100배 성장…305조원 시장으로. 한국경제, https:// www.hankyung.com/article/202606035067i 이데일리(2026-08-27). 2030년까지 6.7조원 전폭 투자…피지컬AI·휴머노이드 초격차. 이데일리, https:// edaily.co.kr/News/Read?mediaCodeNo=257&newsId=04014726645551584 TechCrunch(2023-03-28). Neubility plans to roll out 400 lidar-free delivery and security robots by year-end. TechCrunch, https://techcrunch.com/2023/03/28/neubility-plans-to-roll-out-400-lidar- free-delivery-and-security-robots-by-year-end/ KED Global(2025-01-15). Neubility, Samsung C&T offer robot delivery service. KED Global, https:// www.kedglobal.com/robotics/newsView/ked202501150003 Robotics 24/7(2022-11-22). Neubility Given CES Innovation Award for Delivery Robot Neubie.
-Robotics 24/7, https://www.robotics247.com/article/ neubility_given_ces_innovation_award_for_delivery_robot_neubie Starship Technologies(2026-04-28). Starship Technologies passes 10 million deliveries. Starship, https://www.starship.xyz/press/autonomous-delivery-moves-into-the-mainstream-as-starship- technologies-passes-10-million-deliveries/ BusinessWire(2025-10-15). Starship Technologies Raises $50M Series C. BusinessWire, https:// www.businesswire.com/news/home/20251015387447/en/ THE VC(2026). 뉴빌리티 투자 정보. THE VC, https://thevc.kr/neubility/fundings 15
+### 기업 공식 자료
+- 뉴빌리티(2026). *회사소개(Our History, Partners)*. [뉴빌리티 공식 홈페이지](https://www.neubility.ai/ko/about)
+- 뉴빌리티(2026). *솔루션*. [뉴빌리티 공식 솔루션](https://www.neubility.ai/ko/solution)
+- 뉴빌리티(2025-06-24). *뉴빌리티 로봇 '뉴비', 산업현장 누빈다…'자율주행 배달' 공급*. [뉴빌리티 뉴스룸](https://www.neubility.ai/ko/discover/detail?id=145)
+- 뉴빌리티(2025-08-11). *뉴빌리티, 피지컬 AI 기술로 '실용형 휴머노이드' 상용화 가속*. [뉴빌리티 뉴스룸](https://www.neubility.ai/ko/discover/detail?id=147)
+- 뉴빌리티(2025-10-13). *김정관 장관, 뉴빌리티 방문해 "배송로봇 인증 절차 연내 개선"*. [뉴빌리티 뉴스룸](https://www.neubility.ai/ko/discover/detail?id=148)
+- 뉴빌리티(2025-11-25). *판교역에 AI 순찰로봇 뜬다…성남시, 자율주행 '뉴비' 배치*. [뉴빌리티 뉴스룸](https://www.neubility.ai/ko/discover/detail?id=150)
+- 뉴빌리티(2025-12-24). *뉴빌리티, 2025년 로봇 상용화 성과 공개*. [뉴빌리티 뉴스룸](https://www.neubility.ai/ko/discover/detail?id=152)
+- 뉴빌리티(2026-02-13). *뉴빌리티, NH투자증권과 IPO 주관 계약 체결*. [뉴빌리티 뉴스룸](https://www.neubility.ai/ko/discover/detail?id=153)
+- 뉴빌리티(2026-07-03). *뉴빌리티, 유니트리와 휴머노이드 로봇 솔루션 공동 개발 MOU 체결*. [뉴빌리티 뉴스룸](https://www.neubility.ai/ko/discover/detail?id=158)
+- 뉴빌리티(2026-09-17). *뉴빌리티, 덕수궁 순찰부터 도쿄 시내 배달까지…'공간 RFM' 전략 본격화*. [뉴빌리티 뉴스룸](https://www.neubility.ai/ko/discover/detail?id=159)
+- NEOM(2023). *Neubility – Oxagon Accelerator*. [NEOM](https://www.neom.com/en-us/regions/oxagon/oxagon-accelerator/neubility)
+
+### 기관 보고서
+- MarketsandMarkets(2025). *Delivery Robots Market worth $3,236.5 million by 2030*. [MarketsandMarkets](https://www.marketsandmarkets.com/PressReleases/delivery-robot.asp)
+- Grand View Research(2024). *Security Robots Market Size, Share & Trends Report, 2030*. [Grand View Research](https://www.grandviewresearch.com/industry-analysis/security-robots-market-report)
+- Counterpoint Research(2026). *피지컬 AI 기기 누적 출하 1억 4,500만 대 전망*. [Counterpoint Research](https://counterpointresearch.com/ko/insights/cumulative-physical-ai-device-shipments-to-reach-145-million-units-by-2025)
+- 한국로봇산업진흥원(2026). *실외이동로봇 운행안전인증*. [KIRIA](https://www.kiria.org/portal/cert/portalCertEstiSafe.do)
+
+### 학술 논문
+- 최성록 외(2019). *제4차 산업혁명 시대의 물류/배송로봇의 동향 및 시사점*. 전자통신동향분석, 34(4), 99-107.
+
+### 웹페이지 및 언론 기사
+- ZDNet Korea(2025-12-09). *뉴빌리티, 251억원 시리즈B 투자 유치*. [ZDNet Korea](https://zdnet.co.kr/view/?no=20251209221233)
+- 인공지능신문(2025-12-10). *뉴빌리티, 251억 원 시리즈 B 투자 유치*. [인공지능신문](https://www.aitimes.kr/news/articleView.html?idxno=37637)
+- 한국일보(2025-03-18). *별 보는 청년, 배달로봇을 만들다 이상민 뉴빌리티 대표*. [한국일보](https://www.hankookilbo.com/News/Read/A2025031711130002923)
+- 블로터(2025). *젠슨 황도 점 찍었다…이상민 뉴빌리티 대표가 꿈꾸는 미래는*. [블로터](https://www.bloter.net/news/articleView.html?idxno=624687)
+- 블로터(2024). *로봇 배송 시대 눈 앞…로보티즈·뉴빌리티 상용화 잰걸음*. [블로터](https://www.bloter.net/news/articleView.html?idxno=622336)
+- 이투데이(2026-05-04). *강기혁 뉴빌리티 대표 "배달 넘어 순찰·제조로"*. [이투데이](https://www.etoday.co.kr/news/view/2581014)
+- EBN(2026-08-04). *뉴빌리티, AI 순찰로봇 글로벌 보안시장 출사표*. [EBN](https://www.ebn.co.kr/news/articleView.html?idxno=1719070)
+- 스마트투데이(2026-08-10). *주차장 누비는 'AI 경비원'…뉴빌리티 순찰로봇 상용화*. [스마트투데이](https://www.smarttoday.co.kr/ko-kr/articles/110277)
+- EBN(2026-09). *뉴빌리티, 하이브리드 휴머노이드 '빌리' 공개*. [EBN](https://www.ebn.co.kr/news/articleView.html?idxno=1726021)
+- 데일리안(2026-09-29). *"춤추는 휴머노이드 필요없다"…뉴빌리티가 '두 다리' 버린 이유*. [데일리안](https://www.dailian.co.kr/news/view/1695632)
+- 뉴스1(2026-09-29). *배달로봇 '뉴비' 데이터 '빌리'로…뉴빌리티, 조작·물류 피지컬AI 겨냥*. [뉴스1](https://www.news1.kr/industry/sb-founded/6304456)
+- 서울경제TV(2026-08-07). *도로 달리는 배민 '딜리'…배달·물류, 자율주행 경쟁 본격화*. [서울경제TV](https://www.sentv.co.kr/article/view/sentv202608070091)
+- CEO스코어데일리(2026-05-12). *배민 vs 요기요, 로봇배달 경쟁 점화*. [CEO스코어데일리](https://www.ceoscoredaily.com/page/view/2026051216363190481)
+- AI타임스(2024-11-10). *로보티즈 "배송로봇에 '팔' 붙였더니 활용도 증가"*. [AI타임스](https://www.aitimes.com/news/articleView.html?idxno=165106)
+- AI타임스(2023-11). *실외이동로봇 시대 개막…개정 지능형로봇법 17일 시행*. [AI타임스](https://www.aitimes.com/news/articleView.html?idxno=155217)
+- 뉴스핌(2026-05-29). *대구시, 실외이동로봇 안전인증 문턱 낮춘다*. [뉴스핌](https://www.newspim.com/news/view/20260529000538)
+- 한국경제(2026-06-03). *피지컬 AI시장, 10년 내 100배 성장…305조원 시장으로*. [한국경제](https://www.hankyung.com/article/202606035067i)
+- 이데일리(2026-08-27). *2030년까지 6.7조원 전폭 투자…피지컬AI·휴머노이드 초격차*. [이데일리](https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=04014726645551584)
+- TechCrunch(2023-03-28). *Neubility plans to roll out 400 lidar-free delivery and security robots by year-end*. [TechCrunch](https://techcrunch.com/2023/03/28/neubility-plans-to-roll-out-400-lidar-free-delivery-and-security-robots-by-year-end/)
+- KED Global(2025-01-15). *Neubility, Samsung C&T offer robot delivery service*. [KED Global](https://www.kedglobal.com/robotics/newsView/ked202501150003)
+- Robotics 24/7(2022-11-22). *Neubility Given CES Innovation Award for Delivery Robot Neubie*. [Robotics 24/7](https://www.robotics247.com/article/neubility_given_ces_innovation_award_for_delivery_robot_neubie)
+- Starship Technologies(2026-04-28). *Starship Technologies passes 10 million deliveries*. [Starship](https://www.starship.xyz/press/autonomous-delivery-moves-into-the-mainstream-as-starship-technologies-passes-10-million-deliveries/)
+- BusinessWire(2025-10-15). *Starship Technologies Raises $50M Series C*. [BusinessWire](https://www.businesswire.com/news/home/20251015387447/en/)
+- THE VC(2026). *뉴빌리티 투자 정보*. [THE VC](https://thevc.kr/neubility/fundings)
+
 
 ## 부록 B. 보완 자료 (2026-09-29 추가)
 
@@ -556,10 +602,28 @@ HL로보틱스 자료: 경비 인력 이탈률 31%, 대부분 65세 이상.
 
 ### B7. 참고문헌(추가분)
 
-Google Patents. KR102219843B1. https://patents.google.com/patent/KR102219843B1/ko Google Patents. KR102342945B1. https://patents.google.com/patent/KR102342945B1/ko THE VC(2026). 뉴빌리티 기업정보. https://thevc.kr/neubility NICE BizInfo. (주)뉴빌리티. https://www.nicebizinfo.com/ep/EP0100M002GE.nice?kiscode=IV5146 잡코리아. ㈜뉴빌리티 기업정보. https://www.jobkorea.co.kr/recruit/co_read/c/neubility 인크루트. (주)뉴빌리티 기업정보. https://www.incruit.com/company/1679501957/ CATCH. 뉴빌리티. https://www.catch.co.kr/Comp/CompSummary/A002L 이데일리(2021-11-26). 롯데가 키운 과학 영재, 라스트마일 자율주행로봇. https://edaily.co.kr/News/Read?
-mediaCodeNo=257&newsId=01180806629249656 메트로신문(2020-11). 이상민 뉴빌리티 대표 인터뷰. https://www.metroseoul.co.kr/article/20201111500262 이데일리(2023). 뉴빌리티, 배달비 1천원 서비스. https://edaily.co.kr/News/Read?
-mediaCodeNo=257&newsId=01328406635643032 이코노미조선(2024-10-11). 자율주행 로봇 SW로 차별화, 배달비 줄여 소비자 이익 증진. https:// economychosun.com/site/data/html_dir/2024/10/11/2024101100015.html 헬로티(2026-03-21). 판교 보도 누비는 AMR 뉴비. https://www.hellot.net/news/article.html?no=111539 ZDNet Korea(2026-01-19). 배달로봇 뉴비 아파트·공장 누빈다, 올해 1천대 목표. https://zdnet.co.kr/view/?
-no=20260119155556 뉴스핌(2026-03-09). LH토지주택연구원 로봇 경비원 보고서. https://www.newspim.com/news/view/ 20260309000976 HL로보틱스. 순찰로봇, 경비인력의 대체일까 보완일까. https://www.hlworld.com/438 이데일리(2026-08-04). 뉴빌리티, RX 모델 확대. https://edaily.co.kr/News/Read?
-mediaCodeNo=257&newsId=05008566645544040 뉴빌리티 채용페이지. 강기혁 부대표 인터뷰. https://neubility.career.greetinghr.com/ko/interview1 시사저널e(2026-03-26). 강기혁 뉴빌리티 CTO 발표. https://www.sisajournal-e.com/news/articleView.html?
-idxno=420053 AI타임스(2026-09-29). 뉴빌리티, 빌리 공개. https://www.aitimes.com/news/articleView.html?idxno=215763 머니투데이(2026-09-29). 군 복무 중인 창업자, 신제품 공개 현장에. https://www.mt.co.kr/future/ 2026/09/29/2026092915163337873 테크M(2026-09-29). 뉴빌리티 빌리 공개. https://www.techm.kr/news/articleView.html?idxno=155653 블로터(2026-07). 성수동 누빈 뉴비. https://www.bloter.net/news/articleView.html?idxno=668244 블로터(2026-09-29). 뉴빌리티, 배달로봇 넘어 휴머노이드로. https://www.bloter.net/news/articleView.html?
-idxno=674627 파이낸셜뉴스(2026-09-17). 디티앤씨, 뉴빌리티와 협력. https://www.fnnews.com/news/202609171706541258 TechCrunch(2023-03-28). Neubility plans to roll out 400 lidar-free robots. https://techcrunch.com/ 2023/03/28/neubility-plans-to-roll-out-400-lidar-free-delivery-and-security-robots-by-year-end/
+- Google Patents. *KR102219843B1*. [Google Patents](https://patents.google.com/patent/KR102219843B1/ko)
+- Google Patents. *KR102342945B1*. [Google Patents](https://patents.google.com/patent/KR102342945B1/ko)
+- THE VC(2026). *뉴빌리티 기업정보*. [THE VC](https://thevc.kr/neubility)
+- NICE BizInfo. *(주)뉴빌리티*. [NICE BizInfo](https://www.nicebizinfo.com/ep/EP0100M002GE.nice?kiscode=IV5146)
+- 잡코리아. *㈜뉴빌리티 기업정보*. [잡코리아](https://www.jobkorea.co.kr/recruit/co_read/c/neubility)
+- 인크루트. *(주)뉴빌리티 기업정보*. [인크루트](https://www.incruit.com/company/1679501957/)
+- CATCH. *뉴빌리티*. [CATCH](https://www.catch.co.kr/Comp/CompSummary/A002L)
+- 이데일리(2021-11-26). *롯데가 키운 과학 영재, 라스트마일 자율주행로봇*. [이데일리](https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=01180806629249656)
+- 메트로신문(2020-11). *이상민 뉴빌리티 대표 인터뷰*. [메트로신문](https://www.metroseoul.co.kr/article/20201111500262)
+- 이데일리(2023). *뉴빌리티, 배달비 1천원 서비스*. [이데일리](https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=01328406635643032)
+- 이코노미조선(2024-10-11). *자율주행 로봇 SW로 차별화, 배달비 줄여 소비자 이익 증진*. [이코노미조선](https://economychosun.com/site/data/html_dir/2024/10/11/2024101100015.html)
+- 헬로티(2026-03-21). *판교 보도 누비는 AMR 뉴비*. [헬로티](https://www.hellot.net/news/article.html?no=111539)
+- ZDNet Korea(2026-01-19). *배달로봇 뉴비 아파트·공장 누빈다, 올해 1천대 목표*. [ZDNet Korea](https://zdnet.co.kr/view/?no=20260119155556)
+- 뉴스핌(2026-03-09). *LH토지주택연구원 로봇 경비원 보고서*. [뉴스핌](https://www.newspim.com/news/view/20260309000976)
+- HL로보틱스. *순찰로봇, 경비인력의 대체일까 보완일까*. [HL로보틱스](https://www.hlworld.com/438)
+- 이데일리(2026-08-04). *뉴빌리티, RX 모델 확대*. [이데일리](https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=05008566645544040)
+- 뉴빌리티 채용페이지. *강기혁 부대표 인터뷰*. [뉴빌리티](https://neubility.career.greetinghr.com/ko/interview1)
+- 시사저널e(2026-03-26). *강기혁 뉴빌리티 CTO 발표*. [시사저널e](https://www.sisajournal-e.com/news/articleView.html?idxno=420053)
+- AI타임스(2026-09-29). *뉴빌리티, 빌리 공개*. [AI타임스](https://www.aitimes.com/news/articleView.html?idxno=215763)
+- 머니투데이(2026-09-29). *군 복무 중인 창업자, 신제품 공개 현장에*. [머니투데이](https://www.mt.co.kr/future/2026/09/29/2026092915163337873)
+- 테크M(2026-09-29). *뉴빌리티 빌리 공개*. [테크M](https://www.techm.kr/news/articleView.html?idxno=155653)
+- 블로터(2026-07). *성수동 누빈 뉴비*. [블로터](https://www.bloter.net/news/articleView.html?idxno=668244)
+- 블로터(2026-09-29). *뉴빌리티, 배달로봇 넘어 휴머노이드로*. [블로터](https://www.bloter.net/news/articleView.html?idxno=674627)
+- 파이낸셜뉴스(2026-09-17). *디티앤씨, 뉴빌리티와 협력*. [파이낸셜뉴스](https://www.fnnews.com/news/202609171706541258)
+- TechCrunch(2023-03-28). *Neubility plans to roll out 400 lidar-free robots*. [TechCrunch](https://techcrunch.com/2023/03/28/neubility-plans-to-roll-out-400-lidar-free-delivery-and-security-robots-by-year-end/)
