@@ -72,14 +72,16 @@ def test_recommendation_fails_neutrality_but_reference_title_ignored():
     rep4 = good_report().replace("## 기업별 평가", "## 투자 추천 기업 상세")
     assert rules(rep4)["neutrality"]
 
-def test_coverage_per_company():
-    rep = good_report().replace("#### 기업 역량\n- 물류 운송사 파트너와 협력해 운행 데이터를 쌓고 있다 [4]\n", "")
-    r = rules(rep)["coverage"]
-    assert r and "마스오토" in r[0], r
+def test_risk_checked_on_whole_report_when_no_company_sections():
+    rep = good_report().replace("### 트위니", "### 기업 A").replace("### 마스오토", "### 기업 B")
+    assert not rules(rep)["bias_control"]
+    for word in q.RISK_KEYWORDS:
+        rep = rep.replace(word, "")
+    assert any("보고서 전체" in v for v in rules(rep)["bias_control"])
 
-def test_missing_required_sections_fail_coverage():
-    assert "SUMMARY 섹션이 없음" in rules(good_report().replace("## SUMMARY", "## 요약"))["coverage"]
-    assert "REFERENCE 섹션이 없음" in rules(good_report().split("## REFERENCES")[0])["coverage"]
+def test_only_three_guide_items():
+    assert q.ITEMS == ("groundedness", "neutrality", "bias_control")
+    assert set(rules(good_report())) == set(q.ITEMS)
 
 def test_bias_risk_per_company_and_concentration():
     rep = good_report().replace("- 레벨4 규제가 정비되지 않아 상용화 시점이 불확실하다 [3]", "- 운행 거리를 늘려가고 있다 [4]")
@@ -135,19 +137,5 @@ def test_revision_cap():
            ["reporter", "reporter", "reporter", "end"]
 
 def test_prompt_build():
-    p = q._build_prompt({**STATE, "report": "R"}, ["groundedness", "coverage"])
-    assert "- groundedness" in p and "- coverage" in p and "{report}" not in p and p.rstrip().endswith("R")
-
-def test_coverage_keyword_fallback_without_subheadings():
-    rep = """## SUMMARY
-- 요약 문장입니다 충분히 길게 씁니다 [1]
-### 트위니
-- 특허를 보유하고 시장 규모가 크며 고객사와 협력하고 도입 사례가 있다 [1]
-### 마스오토
-- 특허를 보유하고 시장 규모가 크며 파트너와 협력한다 [4]
-## REFERENCE
-[1] 트위니 회사소개서
-[4] 마스오토 뉴스 - https://marsauto.com/news
-"""
-    r = rules(rep)["coverage"]
-    assert len(r) == 1 and "마스오토" in r[0] and "기업 역량" in r[0], r
+    p = q._build_prompt({**STATE, "report": "R"}, ["groundedness", "bias_control"])
+    assert "- groundedness" in p and "- bias_control" in p and "{report}" not in p and p.rstrip().endswith("R")

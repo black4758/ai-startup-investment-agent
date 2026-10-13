@@ -3,24 +3,21 @@
 보고서 품질 평가 노드 (Hybrid = 1안 규칙 검사 + 2안 LLM Judge, 항목별 거부권 방식)
 
 흐름:
-1. 규칙 검사 (결정적, API 호출 없음) : 필수 3개 + 추가 1개 항목을 각각 코드로 검사
+1. 규칙 검사 (결정적, API 호출 없음) : 3개 항목을 각각 코드로 검사
 2. 규칙을 통과한 항목만 LLM Judge가 내용 채점 (1~5점, JUDGE_PASS_SCORE 이상 통과)
    → 항목 통과 = 규칙 통과 AND LLM 통과. 규칙 실패 항목은 LLM을 부르지 않는다 (비용 절감).
 3. 하나라도 미달이면 항목별 사유를 feedback으로 담아 재작성 요청
    (재작성 최대 MAX_REVISIONS회, 그 뒤에도 미달이면 현재 보고서로 종료)
 
-평가 항목 (노션 가이드 D. 보고서 품질 평가 - 최소 3개 항목):
+평가 항목 (노션 가이드 D. 보고서 품질 평가 - 최소 평가 항목 3개):
 - Groundedness  : 본문 주장에 출처 번호[n]가 달려 있고, 그 번호가 실제 검색된 출처로 추적되는가
 - 중립성        : 특정 기업/기술 추천, 우열·순위 판정이 없는가 (과제 정의 그대로)
 - 편향 통제     : 본문 인용이 여러 출처에 분산되고, 기업별로 리스크·한계를 다루는가
-추가 항목 (가이드 최소 항목 외, 팀 자체 기준):
-- 구조·커버리지 : 필수 목차(SUMMARY, REFERENCE)가 있고, 기업별로 하위 에이전트 3개 관점
-                  (기술성·기업 역량·시장성)을 모두 다루는가
 
 보고서 형식 전제 (reporter 프롬프트에 반영 필요):
 - 본문 서술 문장 끝에 [1], [2] 형식 출처 번호
 - '## REFERENCE' 아래 '[n] 제목 - URL' 형식 목록 (URL이 없는 로컬 문서는 제목/파일명만)
-- 기업별 섹션 제목에 기업명 포함
+- 기업별 섹션 제목에 기업명 포함 (권장: 기업별 리스크 서술을 기업 단위로 검사, 없으면 보고서 전체로 검사)
 
 그래프 연결 (조정 계층에서 사용):
     workflow.add_node("quality_eval", evaluate_quality)
@@ -73,31 +70,16 @@ BANNED_PATTERNS = [
     r"최고의\s*(?:기업|투자|선택|대안)", r"확실한\s*성공", r"의심의\s*여지", r"무조건",
 ]
 
-# ── 구조·커버리지 규칙: 기업 섹션 안에 관점 소제목 또는 대표 키워드 ─────────────
-#    관점은 하위 에이전트(tech / company / market)와 1:1 대응
-PERSPECTIVE_KEYWORDS = {
-    "기술성": ["기술성", "TRL", "특허", "상용화", "양산", "기술 차별"],
-    "기업 역량": ["기업 역량", "창업자", "창업팀", "경영진", "매출", "실적", "수익모델", "고객사", "투자 유치"],
-    "시장성": ["시장성", "시장 규모", "TAM", "SAM", "CAGR", "성장률", "경쟁 구도"],
-}
-# 기업 섹션에 소제목이 있으면 소제목으로 판정 (키워드는 관점끼리 겹치므로 소제목이 없을 때만 사용)
-PERSPECTIVE_HEADINGS = {
-    "기술성": ["기술"],
-    "기업 역량": ["기업", "창업", "팀", "역량", "실적", "사업", "수익"],
-    "시장성": ["시장"],
-}
 RISK_KEYWORDS = ["리스크", "한계", "위험", "불확실", "정보 부재", "정보 공백", "우려"]
 
-ITEMS = ("groundedness", "neutrality", "bias_control", "coverage")
+ITEMS = ("groundedness", "neutrality", "bias_control")
 ITEM_NAMES = {
     "groundedness": "Groundedness",
     "neutrality": "중립성",
     "bias_control": "편향 통제",
-    "coverage": "구조·커버리지",
 }
 # 미달 시 원인: 글 문제(재작성) vs 자료 문제(재조사)
-FIX_TARGET = {"groundedness": "reporter", "neutrality": "reporter",
-              "bias_control": "supervisor", "coverage": "supervisor"}
+FIX_TARGET = {"groundedness": "reporter", "neutrality": "reporter", "bias_control": "supervisor"}
 # 자료 문제를 Supervisor 재조사로 보낼지 (그래프 매핑에 "supervisor"가 있을 때만 켤 것)
 FAIL_ROUTE_SUPERVISOR = os.getenv("QUALITY_FAIL_ROUTE", "reporter") == "supervisor"
 
@@ -107,7 +89,7 @@ FAIL_ROUTE_SUPERVISOR = os.getenv("QUALITY_FAIL_ROUTE", "reporter") == "supervis
 # ─────────────────────────────────────────────────────────────────────────────
 
 class JudgeItem(BaseModel):
-    item: Literal["groundedness", "neutrality", "bias_control", "coverage"]
+    item: Literal["groundedness", "neutrality", "bias_control"]
     score: int = Field(ge=1, le=5, description="1(심각한 미달) ~ 5(완전 충족)")
     reason: str = Field(description="채점 사유 1~2문장")
     problems: List[str] = Field(default_factory=list, description="문제 문장 발췌 (각 30자 이내)")
@@ -128,8 +110,6 @@ _CITE_RE = re.compile(r"\[(\d{1,3})\]")
 _HEADING_LINE_RE = re.compile(r"^[ \t]*(#{1,6})[ \t]+(.*)$", re.MULTILINE)
 _REF_HEADING_RE = re.compile(r"^[ \t]*(?:#{1,6}[ \t]*)?(?:\*\*)?[ \t]*REFERENCES?\b.*$",
                              re.IGNORECASE | re.MULTILINE)
-_SUMMARY_HEADING_RE = re.compile(r"^[ \t]*#{1,6}[ \t]*(?:\*\*)?[ \t]*(?:\d+\.\s*)?SUMMARY\b",
-                                 re.IGNORECASE | re.MULTILINE)
 
 
 def extract_urls(text: str) -> List[str]:
@@ -306,35 +286,12 @@ def check_bias_control(report: str, companies: List[str]) -> List[str]:
         if n / len(domains) > MAX_DOMAIN_SHARE:
             violations.append(f"REFERENCE 링크의 {n / len(domains):.0%}가 {top_domain} 한 곳에 편중")
 
-    targets = [(c, company_section(body, c)) for c in companies] or [("보고서 전체", body)]
-    no_risk = [c for c, sec in targets if sec is not None and not any(k in sec for k in RISK_KEYWORDS)]
+    # 기업별 섹션이 하나도 없으면(기업명 제목 미사용) 보고서 전체로 판정해 검사가 비어 통과하지 않도록 함
+    targets = [(c, sec) for c in companies if (sec := company_section(body, c)) is not None]
+    targets = targets or [("보고서 전체", body)]
+    no_risk = [c for c, sec in targets if not any(k in sec for k in RISK_KEYWORDS)]
     if no_risk:
         violations.append(f"리스크·한계 서술이 없는 기업: {no_risk} (유리한 근거만 제시)")
-    return violations
-
-
-def check_coverage(report: str, companies: List[str]) -> List[str]:
-    """필수 목차(SUMMARY, REFERENCE) 존재 + 기업별 섹션 안에 3개 관점이 모두 있는지 검사."""
-    body, reference = split_reference(report)
-    violations = []
-    if not _SUMMARY_HEADING_RE.search(body):
-        violations.append("SUMMARY 섹션이 없음")
-    if reference is None:
-        violations.append("REFERENCE 섹션이 없음")
-
-    targets = [(c, company_section(body, c)) for c in companies] or [("보고서 전체", body)]
-    for name, sec in targets:
-        if sec is None:
-            violations.append(f"{name} 섹션(기업명이 들어간 제목)이 없음")
-            continue
-        subheads = [h.group(2) for h in _HEADING_LINE_RE.finditer(sec)]
-        if subheads:
-            missing = [p for p, alias in PERSPECTIVE_HEADINGS.items()
-                       if not any(a in h for h in subheads for a in alias)]
-        else:
-            missing = [p for p, kws in PERSPECTIVE_KEYWORDS.items() if not any(k in sec for k in kws)]
-        if missing:
-            violations.append(f"{name}: 누락된 관점 {missing}")
     return violations
 
 
@@ -345,7 +302,6 @@ def run_rule_checks(report: str, sources: List[str], companies: Optional[List[st
         "groundedness": check_groundedness(report, sources),
         "neutrality": check_neutrality(report),
         "bias_control": check_bias_control(report, companies),
-        "coverage": check_coverage(report, companies),
     }
 
 
@@ -403,16 +359,13 @@ def run_llm_judge(state: GraphState, items: List[str]) -> LLMJudgeVerdict:
 
 def _to_result(passed: Dict[str, bool], feedback: str) -> QualityEvalResult:
     """
-    항목 판정을 State 스키마(QualityEvalResult)로 옮깁니다.
-    추가 항목(구조·커버리지)은 State에 전용 필드가 없어도 verdict와 feedback에 반영됩니다.
-    (State 모델에 coverage_pass 필드가 있으면 함께 저장)
+    3개 항목 판정을 State 스키마(QualityEvalResult)로 옮깁니다. (항목 ↔ *_pass 필드 1:1)
     """
     verdict = "PASS" if all(passed.values()) else "FAIL"
     values = {
         "groundedness_pass": passed["groundedness"],
         "neutrality_pass": passed["neutrality"],
         "bias_control_pass": passed["bias_control"],
-        "coverage_pass": passed["coverage"],
         "verdict": verdict,
         "feedback": "" if verdict == "PASS" else feedback,
     }
@@ -532,7 +485,7 @@ def route_after_quality(state: GraphState) -> str:
     - PASS                                   -> 'end'
     - FAIL이고 미달 횟수가 MAX_REVISIONS 초과 -> 'end' (현재 보고서로 종료, 종료 보장)
     - FAIL이고 재작성 여유 있음              -> 'reporter' (피드백 반영 재작성)
-      · QUALITY_FAIL_ROUTE=supervisor 이고 미달이 자료 문제(편향·커버리지)뿐이면 -> 'supervisor' (재조사)
+      · QUALITY_FAIL_ROUTE=supervisor 이고 미달이 자료 문제(편향 통제)뿐이면 -> 'supervisor' (재조사)
     """
     result = state.get("eval_result")
     if result is None or result.verdict == "PASS":
