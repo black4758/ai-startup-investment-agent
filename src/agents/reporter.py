@@ -236,70 +236,71 @@ def generate_report(state: dict) -> dict:
 
     pdf_css = """
     body {
-        font-family: sans-serif;
-        font-size: 10pt;
-        line-height: 1.6;
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+        font-size: 8.5pt;
+        line-height: 1.45;
         color: #273444;
     }
 
     h1 {
-    font-size: 17pt;
-    font-weight: bold;
-    color: #183153;
-    border-bottom: none;
-    padding-bottom: 0;
-    margin-top: 12px;
-    margin-bottom: 8px;
-}
+        font-size: 16pt;
+        font-weight: bold;
+        color: #183153;
+        border-bottom: 2px solid #24527A;
+        padding-bottom: 3px;
+        margin-top: 0;
+        margin-bottom: 6px;
+    }
 
-h2 {
-    font-size: 13pt;
-    font-weight: bold;
-    color: #24527A;
-    border-bottom: 1px solid #DCE3EA;
-    padding-bottom: 5px;
-    margin-top: 20px;
-    margin-bottom: 10px;
-}
-
-    h3 {
-        font-size: 12.5pt;
+    h2 {
+        font-size: 11pt;
         font-weight: bold;
         color: #24527A;
+        border-bottom: 1px solid #DCE3EA;
+        padding-bottom: 2px;
+        margin-top: 10px;
+        margin-bottom: 4px;
+        page-break-after: avoid;
+    }
+
+    h3 {
+        font-size: 10pt;
+        font-weight: bold;
+        color: #173B63;
         background-color: #EEF3F8;
-        border-left: 4px solid #24527A;
-        padding: 8px 10px;
-        margin-top: 20px;
-        margin-bottom: 12px;
+        border-left: 3.5px solid #24527A;
+        padding: 3px 8px;
+        margin-top: 8px;
+        margin-bottom: 4px;
         page-break-after: avoid;
     }
 
     h4 {
-        font-size: 10.5pt;
+        font-size: 8.5pt;
         font-weight: bold;
         color: #34495E;
         border-bottom: 1px solid #E5EAF0;
-        padding-bottom: 4px;
-        margin-top: 14px;
-        margin-bottom: 7px;
+        padding-bottom: 2px;
+        margin-top: 6px;
+        margin-bottom: 2px;
         page-break-after: avoid;
     }
 
     p {
-        margin-top: 5px;
-        margin-bottom: 9px;
-        line-height: 1.6;
+        margin-top: 2px;
+        margin-bottom: 3px;
+        line-height: 1.45;
     }
 
     ul, ol {
-        margin-top: 5px;
-        margin-bottom: 12px;
-        padding-left: 20px;
+        margin-top: 2px;
+        margin-bottom: 4px;
+        padding-left: 14px;
     }
 
     li {
-        margin-bottom: 6px;
-        line-height: 1.6;
+        margin-bottom: 2px;
+        line-height: 1.45;
     }
 
     strong {
@@ -307,36 +308,46 @@ h2 {
         font-weight: bold;
     }
 
-   table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 8pt;
-    margin-top: 12px;
-    margin-bottom: 18px;
-    page-break-inside: avoid;
-    break-inside: avoid;
-}
+    /* fitz.Story 고스트 헤더 버그 방지: border-spacing: 0 사용 (border-collapse 사용 금지) */
+    table {
+        width: 100%;
+        border-spacing: 0;
+        font-size: 8pt;
+        margin: 6px 0 10px 0;
+        page-break-inside: avoid;
+    }
 
-thead {
-    display: table-row-group;
-}
     th {
         background-color: #173B63;
         color: #FFFFFF;
         font-weight: bold;
-        padding: 8px 4px;
+        padding: 5px 3px;
         text-align: center;
-        border: 1px solid #173B63;
+        border-top: 1px solid #173B63;
+        border-bottom: 1px solid #173B63;
+        border-right: 1px solid #173B63;
+    }
+
+    th:first-child {
+        border-left: 1px solid #173B63;
     }
 
     td {
-        padding: 9px 4px;
+        padding: 4px 3px;
         text-align: center;
         border-bottom: 1px solid #DCE3EA;
+        border-right: 1px solid #DCE3EA;
     }
 
-    tr:nth-child(even) {
-        background-color: #F1F5F9;
+    td:first-child {
+        border-left: 1px solid #DCE3EA;
+        font-weight: 600;
+        text-align: left;
+        padding-left: 5px;
+    }
+
+    tr:nth-child(even) td {
+        background-color: #F8FAFC;
     }
 
     tr {
@@ -351,29 +362,16 @@ thead {
     blockquote {
         border-left: 3px solid #A8BED3;
         background-color: #F6F8FB;
-        padding: 10px 14px;
-        margin: 12px 0;
+        padding: 6px 10px;
+        margin: 8px 0;
         color: #34495E;
     }
 
     hr {
         border: none;
         border-top: 1px solid #DCE3EA;
-        margin: 20px 0;
+        margin: 12px 0;
     }
-    /* 표 헤더가 다른 페이지에서 반복 출력되지 않도록 설정 */
-thead {
-    display: table-row-group;
-}
-
-/* 표가 가능하면 페이지 중간에서 분할되지 않도록 설정 */
-table {
-    page-break-inside: avoid;
-    break-inside: avoid;
-}
-thead {
-    display: table-row-group !important;
-}
     """
 
     # PDF 생성
@@ -382,7 +380,8 @@ thead {
     pdf.add_section(
         Section(
             pdf_content,
-            paper_size="A4"
+            paper_size="A4",
+            borders=(28, 30, -28, -30)
         ),
         user_css=pdf_css
     )
