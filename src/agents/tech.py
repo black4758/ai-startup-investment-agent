@@ -35,7 +35,7 @@ try:
 except ImportError:
     from langchain_community.chat_models import ChatOpenAI
 
-from src.state import GraphState, TechScores
+from src.state import GraphState, TechScores, PerspectiveResult
 from src.vectorstore import build_vectorstore, search_documents
 
 # .env 환경 변수 로드
@@ -235,12 +235,19 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
     if missing_items:
         print(f"  - 정보부재 항목: {missing_items}")
 
+    tech_result = PerspectiveResult(
+        view="tech",
+        analysis=tech_analysis,
+        scores=tech_scores,
+        sources=all_sources,
+        missing_items=missing_items,
+    )
+    current_perspectives = dict(state.get("perspectives") or {})
+    current_perspectives["tech"] = tech_result
+
     # 6. GraphState 갱신용 딕셔너리 반환
     return {
-        "tech_analysis": tech_analysis,
-        "tech_scores": tech_scores,
-        "missing_items": missing_items,
-        "sources": all_sources,
+        "perspectives": current_perspectives,
     }
 
 
