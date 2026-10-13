@@ -77,30 +77,58 @@ def generate_report(state: dict) -> dict:
     llm = ChatOpenAI(model="gpt-4o", temperature=0)
     chain = prompt | llm
     
-    # 출처 중복 제거 및 리스트/링크 형태로 정돈
-    if sources:
-        cleaned_sources = []
-        seen_sources = set()  # 추가
-        for s in sources:
-            
-            if isinstance(s, dict):
-                title = s.get("title", "참고 문서")
-                url = s.get("url", "")
+           # 출처 중복 제거: 동일 제목은 URL이 있는 항목 우선
+    import re
 
-                if url:
-                    formatted_source = f"- [{title}]({url})"
-                else:
-                    formatted_source = f"- {title}"
+    cleaned_sources = []
+    source_index = {}
+
+    for s in sources:
+        if isinstance(s, dict):
+            title = str(s.get("title") or "참고 문서").strip()
+            url = str(s.get("url") or "").strip()
+        else:
+            raw = str(s).strip()
+
+            # [제목](URL) 형식
+            match = re.fullmatch(r"\[(.*?)\]\((https?://.*?)\)", raw)
+
+            if match:
+                title, url = match.groups()
             else:
-                formatted_source = f"- {s}"
+                # 제목. URL 형식도 처리
+                match = re.fullmatch(r"(.*?)\s+(https?://\S+)", raw)
+                if match:
+                    title, url = match.groups()
+                else:
+                    title, url = raw, ""
 
-            if formatted_source not in seen_sources:
-                seen_sources.add(formatted_source)
-                cleaned_sources.append(formatted_source)
+        title = title.strip()
+        url = url.strip()
 
-        unique_sources = "\n".join(cleaned_sources)
-    else:
-        unique_sources = "정보 없음"
+        # 제목이 동일한 경우 중복으로 판단
+        key = re.sub(r"\s+", " ", title).strip().rstrip(".。").casefold()
+        if not key:
+            continue
+
+        formatted = f"[{title}]({url})" if url else title
+
+        if key in source_index:
+            idx = source_index[key]
+
+            # 기존 항목에 URL이 없고 새 항목에 URL이 있으면 교체
+            if url and not cleaned_sources[idx][1]:
+                cleaned_sources[idx] = (formatted, url)
+        else:
+            source_index[key] = len(cleaned_sources)
+            cleaned_sources.append((formatted, url))
+
+    numbered_sources = [
+        f"[{i}] {formatted}"
+        for i, (formatted, url) in enumerate(cleaned_sources, start=1)
+    ]
+
+    unique_sources = "\n".join(numbered_sources) or "정보 없음"
 
 
     
@@ -123,6 +151,23 @@ def generate_report(state: dict) -> dict:
     })
     
     report_content = response.content
+    # 보고서 최상단 제목 자동 추가
+    report_content = report_content.strip()
+
+    if not report_content.startswith("# 투자 검토 보고서"):
+        report_content = "# 투자 검토 보고서\n\n" + report_content
+
+    # LLM이 REFERENCE를 작성했더라도 제거
+    import re
+
+    report_content = re.split(
+        r"(?im)^#{1,6}\s+REFERENCE(?:S)?\s*$",
+        report_content,
+        maxsplit=1
+    )[0].rstrip()
+
+    # 코드에서 REFERENCE 생성
+    report_content += "\n\n# REFERENCE\n\n" + unique_sources + "\n"
 
     # 5. outputs 폴더 및 파일 경로 설정 (타임스탬프 적용)
     os.makedirs("outputs", exist_ok=True)
@@ -142,7 +187,7 @@ def generate_report(state: dict) -> dict:
     # PDF 변환 시 목적지가 없는 링크 제거
     pdf_content = re.sub(r'\[([^\]]+)\]\(#\)', r'\1', report_content)
 
-    pdf = MarkdownPdf(toc_level=2)
+    pdf = MarkdownPdf(toc_level=0)
     pdf.add_section(Section(pdf_content, paper_size="A4"))
     pdf.save(pdf_file_path)
     import pymupdf
