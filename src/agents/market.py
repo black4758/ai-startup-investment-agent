@@ -30,6 +30,9 @@ _VECTORSTORE = None
 PROMPT_PATH = Path(__file__).resolve().parents[2] / "prompts" / "market_prompt.txt"
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 TOP_K = int(os.getenv("MARKET_TOP_K", "6"))
+RETRY_TOP_K = int(os.getenv("MARKET_RETRY_TOP_K", "10"))   # 재작업 시 문서 수
+# 재작업 시 추가하는 보강 검색어: 1차 검색어(규모·성장률·규제)와 다른 각도(수요처·도입 사례·경쟁사)
+RETRY_QUERY = "{startup} 수요 산업 고객 세그먼트 도입 사례 경쟁사 점유율 시장 내 포지션"
 
 # 프롬프트가 한글 라벨로 출력하므로 State 키로 변환한다
 KEY_MAP = {
@@ -48,15 +51,32 @@ def _get_vectorstore():
     return _VECTORSTORE
 
 
-def retrieve_market_docs(vectorstore, startup: str, k: int = TOP_K):
+def retrieve_market_docs(vectorstore, startup: str, k: int = TOP_K, retry: bool = False):
     """시장 문서만 검색한다.
     공통 시장 문서(common)와 현재 기업의 시장 문서만 허용해,
-    다른 기업 전용 시장 문서(예: marsauto_market)가 섞이지 않게 한다."""
+    다른 기업 전용 시장 문서(예: marsauto_market)가 섞이지 않게 한다.
+
+    retry=True (Supervisor 재작업 / HOLD 보완 재조사):
+      - 문서 수를 RETRY_TOP_K로 늘리고
+      - 다른 각도의 보강 검색어(RETRY_QUERY)를 추가해 1차와 다른 근거를 찾는다.
+    """
     query = (f"{startup} 시장 규모 TAM 연평균 성장률 CAGR 전망 "
              "규제 정책 진입 장벽 경쟁 구도")
     company_key = normalize_company_name(startup)
-    return search_documents(vectorstore, query, company=["common", company_key],
-                            doc_types="market", k=k)
+    queries = [query]
+    if retry:
+        k = max(k, RETRY_TOP_K)
+        queries.append(RETRY_QUERY.format(startup=startup))
+
+    docs, seen = [], set()
+    for q in queries:
+        for d in search_documents(vectorstore, q, company=["common", company_key],
+                                  doc_types="market", k=k):
+            doc_id = (d.metadata.get("title") or d.metadata.get("source"), d.page_content[:60])
+            if doc_id not in seen:
+                seen.add(doc_id)
+                docs.append(d)
+    return docs
 
 
 def format_docs(docs) -> str:
@@ -174,7 +194,11 @@ def evaluate_market(state: GraphState) -> Dict[str, Any]:
     startup = state.get("current_startup") or state.get("company") or ""
 
     vectorstore = _get_vectorstore()
-    docs = retrieve_market_docs(vectorstore, startup)
+    # 재작업 판단: Supervisor가 retry_count=1로 올렸고, 이 기업에서 시장 관점을 이미 한 번 실행한 경우
+    retry = state.get("retry_count", 0) >= 1 and "market" in (state.get("perspectives") or {})
+    docs = retrieve_market_docs(vectorstore, startup, retry=retry)
+    if retry:
+        print(f"[Market Agent] '{startup}' 재작업: 문서 {RETRY_TOP_K}개 + 보강 검색어로 확대 검색 ({len(docs)}건)")
 
     prompt = (PROMPT_PATH.read_text(encoding="utf-8")
               .replace("{startup}", startup)
@@ -187,6 +211,8 @@ def evaluate_market(state: GraphState) -> Dict[str, Any]:
     scores, missing, notes = validate(parsed, docs)
 
     analysis = parsed["analysis"]
+    if notes:
+        analysis += "\n\n[코드 보정] " + " / ".join(notes)
     market_result = PerspectiveResult(
         view="market",
         analysis=analysis,
