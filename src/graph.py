@@ -6,7 +6,7 @@ LangGraph 기반 Physical AI 스타트업 투자 평가 파이프라인 - Superv
     START -> extract_candidate -> supervisor
     supervisor --(add_conditional_edges, next_agent)--> tech | company | market | judge | extract_candidate | reporter
     tech / company / market / judge -> supervisor   (하위 에이전트 간 직접 연결 없음)
-    reporter -> [quality_eval -> (FAIL: reporter 재작성 | PASS: END)]  (품질 평가 노드 연결 시)
+    reporter -> quality_eval -> (FAIL: reporter 재작성 | PASS 또는 재작성 상한: END)
 
 Supervisor 판단 규칙 (규칙 기반 = 같은 State면 항상 같은 결정 -> 재현성):
     1. 미수집 관점이 있으면 -> 평가 가중치가 큰 관점부터 실행 (기업 40% > 기술 35% > 시장 25%)
@@ -41,6 +41,7 @@ from src.agents.company import evaluate_company
 from src.agents.market import evaluate_market
 from src.agents.judge import evaluate_judge
 from src.agents.reporter import generate_report
+from src.agents.quality_eval import evaluate_quality, route_after_quality, MAX_REVISIONS as QUALITY_MAX_REVISIONS
 
 # .env 환경변수 로드
 load_dotenv()
@@ -60,15 +61,14 @@ PERSPECTIVES: Dict[str, Dict[str, Any]] = {
 MIN_SOURCES = 2              # 관점당 최소 출처 수 (단일 출처 편중 방지 = 노션 '편향 통제')
 WEAK_SCORE = 2.0             # 2점 이하 = 정보 부재 수준 (judge.py MISSING_SCORE와 동일 기준)
 MAX_AGENT_RUNS = 2           # 관점당 최대 실행 횟수 (최초 1회 + 재작업 1회)
-MAX_REPORT_REVISIONS = 3     # 품질 평가 탈락 시 보고서 재작성 상한 (state.py report_revision_count 주석 기준)
+MAX_REPORT_REVISIONS = QUALITY_MAX_REVISIONS  # 보고서 재작성 상한 (quality_eval.py가 report_revision_count로 관리)
 MAX_SUPERVISOR_STEPS = 60    # 전체 Supervisor 결정 상한 (기업당 최대 약 9회 x 5개사 + 여유)
 GRAPH_RECURSION_LIMIT = 150  # LangGraph 노드 실행 상한 (마지막 안전망)
 
 DECISION_LOG_DIR = Path("outputs")
 
-# 팀원이 만든 품질 평가 노드 함수를 여기에 연결 (예: from src.agents.quality import evaluate_quality)
-# None이면 reporter -> END로 연결되고, 함수가 지정되면 reporter -> quality_eval -> (재작성 | END)로 연결됨
-QUALITY_EVAL_NODE: Optional[Callable[[GraphState], Dict[str, Any]]] = None
+# 보고서 품질 평가 노드 (Hybrid: 규칙 검사 + LLM Judge). None이면 reporter -> END
+QUALITY_EVAL_NODE: Optional[Callable[[GraphState], Dict[str, Any]]] = evaluate_quality
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -307,47 +307,29 @@ def make_judge_node(fn: Callable[[GraphState], Dict[str, Any]]) -> Callable[[Gra
     return judge
 
 
-def _verdict(eval_result: Any) -> Tuple[str, str]:
-    """eval_result(QualityEvalResult 또는 dict)에서 (verdict, feedback) 추출"""
-    if eval_result is None:
-        return "", ""
-    if isinstance(eval_result, dict):
-        return str(eval_result.get("verdict", "")).upper(), str(eval_result.get("feedback", ""))
-    return str(getattr(eval_result, "verdict", "")).upper(), str(getattr(eval_result, "feedback", ""))
+def make_quality_router(router: Callable[[GraphState], str]) -> Callable[[GraphState], str]:
+    """
+    품질 평가 분기 래퍼: 팀원 분기 함수(route_after_quality)를 한 번만 호출하고,
+    그 결과와 사유를 Supervisor 결정 로그에 함께 남깁니다. (판정·횟수 계산은 quality_eval.py가 단독 담당)
+    """
+    def route(state: GraphState) -> str:
+        next_node = router(state)
 
-
-def make_quality_node(fn: Callable[[GraphState], Dict[str, Any]]) -> Callable[[GraphState], Dict[str, Any]]:
-    """품질 평가 래퍼: 팀원 노드를 실행하고, 통과/재작성/상한 종료를 결정해 사유를 기록"""
-    def quality_eval(state: GraphState) -> Dict[str, Any]:
-        result = dict(fn(state) or {})
-        status = dict(state.get("node_status") or {})
-        status.update(result.get("node_status") or {})  # 팀원 노드가 node_status를 반환해도 기존 기록 유지
-
-        verdict, feedback = _verdict(result.get("eval_result", state.get("eval_result")))
+        eval_result = state.get("eval_result")
+        verdict = getattr(eval_result, "verdict", None) or "판정 없음"
+        feedback = str(getattr(eval_result, "feedback", "") or "")
         revisions = state.get("report_revision_count", 0)
         if verdict == "PASS":
-            next_agent, reason = "end", "품질 평가 PASS -> 종료"
-            status["quality_eval"] = "PASS"
-        elif revisions < MAX_REPORT_REVISIONS:
-            next_agent = "reporter"
-            reason = f"품질 평가 {verdict or '판정 없음'} -> 보고서 재작성 {revisions + 1}회차 ({feedback[:80]})"
-            result["report_revision_count"] = revisions + 1
-            status["quality_eval"] = "FAIL"
+            reason = "품질 평가 PASS -> 종료"
+        elif next_node == "end":
+            reason = f"품질 평가 {verdict}, 재작성 상한({MAX_REPORT_REVISIONS}회) 도달 -> 현재 보고서로 종료"
         else:
-            next_agent = "end"
-            reason = f"품질 평가 미달이나 재작성 상한({MAX_REPORT_REVISIONS}회) 도달 -> 경고와 함께 종료"
-            status["quality_eval"] = "FAIL_ACCEPTED"
+            reason = f"품질 평가 {verdict} (미달 {revisions}회) -> {next_node} ({feedback[:80]})"
 
-        log_decision(state, "quality_eval", next_agent, reason)
-        result["next_agent"] = next_agent
-        result["node_status"] = status
-        return result
+        log_decision(state, "quality_eval", next_node, reason)
+        return next_node
 
-    return quality_eval
-
-
-def route_after_quality(state: GraphState) -> str:
-    return "reporter" if state.get("next_agent") == "reporter" else "end"
+    return route
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -357,6 +339,7 @@ def route_after_quality(state: GraphState) -> str:
 def create_investment_graph(
     agents: Optional[Dict[str, Callable[[GraphState], Dict[str, Any]]]] = None,
     quality_eval: Optional[Callable[[GraphState], Dict[str, Any]]] = QUALITY_EVAL_NODE,
+    quality_router: Callable[[GraphState], str] = route_after_quality,
 ):
     """
     Supervisor 패턴 StateGraph 생성 및 컴파일.
@@ -405,15 +388,16 @@ def create_investment_graph(
 
     # 보고서 -> 품질 평가 Loop
     if quality_eval is not None:
-        workflow.add_node("quality_eval", make_quality_node(quality_eval))
+        workflow.add_node("quality_eval", quality_eval)
         workflow.add_edge("reporter", "quality_eval")
         workflow.add_conditional_edges(
             "quality_eval",
-            route_after_quality,
-            {"reporter": "reporter", "end": END},
+            make_quality_router(quality_router),
+            # supervisor: QUALITY_FAIL_ROUTE=supervisor 설정 시 경로 (전 기업 평가 완료 상태라 Supervisor가 reporter로 재지시)
+            {"reporter": "reporter", "supervisor": "supervisor", "end": END},
         )
     else:
-        # 품질 평가 노드 연결 전: QUALITY_EVAL_NODE에 팀원 함수를 지정하면 위 Loop로 자동 전환
+        # 품질 평가 없이 실행 (구조 테스트용)
         workflow.add_edge("reporter", END)
 
     return workflow.compile().with_config(recursion_limit=GRAPH_RECURSION_LIMIT)
