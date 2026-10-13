@@ -265,26 +265,29 @@ def evaluate_company(state: GraphState, vectorstore: Optional[Any] = None) -> Di
     기업 평가 에이전트 메인 실행 함수 (LangGraph Node):
 
     매개변수:
-      - state: 현재 파이프라인의 GraphState (current_startup, retry_count, company_scores 참조)
+      - state: 현재 파이프라인의 GraphState (current_startup, retry_count, perspectives["company"] 참조)
       - vectorstore: 사전 로드된 FAISS 벡터스토어 (None일 경우 자동 로드)
 
     반환값:
       GraphState 업데이트 딕셔너리:
-        - company_analysis: 분석 상세 보고서
-        - company_scores: 스코어카드 점수
-        - missing_items: 정보 부재 항목 목록
-        - sources: 인용 출처 목록
+        - perspectives["company"]: PerspectiveResult (분석, 점수, 출처, 정보 부재 항목)
     """
     startup = state.get("current_startup", "")
     if not startup:
         raise ValueError("GraphState에 'current_startup'이 지정되지 않았습니다.")
 
     retry_count = state.get("retry_count", 0)
-    # HOLD 재평가 시 1차 평가에서 정보 부재였던 항목 (PDF C.5)
-    # 이전 점수는 perspectives["company"].scores에 저장되어 있음
+    # 재평가 시 1차 평가에서 정보 부재였던 항목 (PDF C.5)
+    # 이전 점수는 perspectives["company"].scores에 저장되어 있음 (PerspectiveResult 또는 dict)
     prev_company = (state.get("perspectives") or {}).get("company")
-    prev_scores = prev_company.scores if prev_company is not None else {}
+    if isinstance(prev_company, dict):
+        prev_scores = prev_company.get("scores") or {}
+    else:
+        prev_scores = getattr(prev_company, "scores", None) or {}
     weak_items = get_weak_items(prev_scores) if retry_count >= 1 else []
+    # Supervisor가 출처 부족으로 재작업을 요청한 경우 정보 부재 항목이 없으므로 전 항목을 보강 검색
+    if retry_count >= 1 and not weak_items:
+        weak_items = list(SCORE_KEYS.values())
 
     # 1. 기업명 메타데이터 키 정규화
     company_key = normalize_company_name(startup)
@@ -373,8 +376,8 @@ def evaluate_company(state: GraphState, vectorstore: Optional[Any] = None) -> Di
     used_sources = [doc_sources[r - 1] for r in used_refs]
     all_sources = list(dict.fromkeys(used_sources or doc_sources))
 
-    # 재평가 시 1차 평가에서 이미 기록된 정보 부재 항목은 중복 누적하지 않음 (missing_items는 누적 필드)
-    reported_missing = [m for m in missing_items if m not in weak_items]
+    # perspectives["company"]는 실행마다 덮어쓰므로 재평가 후에도 남은 정보 부재 항목을 그대로 기록
+    reported_missing = missing_items
 
     tag = f" (HOLD 재평가 {retry_count}회차)" if retry_count >= 1 else ""
     print(f"\n[Company Agent] '{startup}' 기업 평가 완료{tag}:")
