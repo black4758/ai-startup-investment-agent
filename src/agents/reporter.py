@@ -167,8 +167,17 @@ def generate_report(state: dict) -> dict:
     )[0].rstrip()
 
     # 코드에서 REFERENCE 생성
-    report_content += "\n\n# REFERENCE\n\n" + unique_sources + "\n"
+   # 출처 번호별로 독립된 문단 생성
+    reference_items = re.split(
+    r"\s+(?=\[\d+\]\s)",
+    unique_sources.strip()
+)
 
+    formatted_references = "\n\n".join(
+    item.strip() for item in reference_items if item.strip()
+)
+
+    report_content += "\n\n# REFERENCE\n\n" + formatted_references + "\n"
     # 5. outputs 폴더 및 파일 경로 설정 (타임스탬프 적용)
     os.makedirs("outputs", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
