@@ -6,7 +6,7 @@
 - **Objective** : 하나의 기업을 복수 관점에서 근거 기반으로 평가하고, 추천·우열 판정 없이 관점별 사실·리스크·정보 공백을 정리한 보고서 생성
 - **Pattern** : Supervisor — 기업마다 확보 가능한 자료 편차가 커서(회사 자료 위주인 기업 / 제3자 자료가 풍부한 기업) "조사 → 근거 충분도 판정 → 부족한 관점만 재조사" 루프가 필요했고, 이를 사전 계획(Orchestrator)보다 State 기반 동적 라우팅으로 다루는 것이 적합했음
 - **동적 처리** :
-  - 고정 순서(tech → company → market) 대신, Supervisor가 매 단계 State(수집된 관점, 근거 충분도, 실행 횟수, 판정 상태)를 보고 다음 노드를 `add_conditional_edges`로 결정
+  - 첫 수집은 평가 가중치 순(기업 40 → 기술 35 → 시장 25)으로 고정, 이후부터는 Supervisor가 매 단계 State(수집된 관점, 근거 충분도, 실행 횟수, 판정 상태)를 보고 다음 노드를 `add_conditional_edges`로 결정
   - 3개 관점 수집 후 근거가 부족한 관점만 골라 재작업 지시 → 기업마다 호출 순서와 횟수가 달라짐
   - 첫 HOLD 판정 시 점수 비율이 가장 낮은 관점만 보완 재조사 후 재판정
   - 보고서 품질 평가 미달 시 피드백을 담아 재작성 루프
@@ -34,7 +34,7 @@ RAG 과제에서 구축한 문서 풀을 그대로 사용하여 패턴 변경 �
 ## Tech Stack
 - Framework : LangGraph (StateGraph, `add_conditional_edges`), LangChain
 - LLM/Generator : `gpt-4o-mini` (tech·company·market·judge 에이전트), `gpt-4o` (보고서 작성)
-- LLM/Judge : `gpt-4o` (`OPENAI_JUDGE_MODEL`, 생성 에이전트와 다른 모델로 자기 채점 편향 완화, temperature 0, 구조화 출력)
+- LLM/Judge : `gpt-4o` (`OPENAI_JUDGE_MODEL`, temperature 0, 구조화 출력). 평가 에이전트(gpt-4o-mini)와는 다르지만 보고서 작성 모델(gpt-4o)과 같아 자기 채점 편향 가능성이 남음 → 규칙 검사를 거부권으로 두어 LLM 단독 통과를 막음
 - Retrieval : FAISS (기업·문서유형 메타데이터 필터 검색)
 - Embedding : `BAAI/bge-m3`
 - Observability : LangSmith Tracing + 결정 로그 JSONL
@@ -65,6 +65,7 @@ RAG 과제에서 구축한 문서 풀을 그대로 사용하여 패턴 변경 �
 - LLM Judge 호출 실패 시 통과시키지 않고 미달 처리, 오류는 `last_error`에 기록
 - 미달 시 항목별 사유를 `eval_result.feedback`으로 Reporter에 전달 → 이전 보고서 + 피드백으로 재작성
 - 재작성 최대 3회, 이후에도 미달이면 현재 보고서로 종료
+- 기본 경로는 Reporter 재작성. `QUALITY_FAIL_ROUTE=supervisor` 설정 시 편향 통제(자료 문제)만 미달이면 Supervisor로 돌려보냄 (아키텍처 이미지의 quality_eval → supervisor 엣지)
 
 ## State Schema
 코드: `src/state.py` — `[A. 작업 페이로드]`와 `[B. 제어 메타데이터]` 구역 분리
@@ -97,6 +98,7 @@ graph TD
     R --> Q{Quality Eval<br/>규칙 + LLM Judge}
     Q -.미달 · 재작성 여유.-> R
     Q -.통과 / 재작성 상한.-> END([END])
+    Q -.편향 통제만 미달 · QUALITY_FAIL_ROUTE=supervisor.-> SUP
 ```
 
 ## Directory Structure
@@ -116,6 +118,7 @@ graph TD
 ├── tests/                    # 품질 평가 단위 테스트
 ├── outputs/                  # 보고서(md/pdf), 결정 로그
 ├── app.py                    # 실행 스크립트
+├── test_reporter.py · test_reporter_hybrid.py   # 보고서 작성 수동 테스트 스크립트 (API 키 필요)
 └── README.md
 ```
 
