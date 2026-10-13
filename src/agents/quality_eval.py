@@ -3,17 +3,19 @@
 보고서 품질 평가 노드 (Hybrid = 1안 규칙 검사 + 2안 LLM Judge, 항목별 거부권 방식)
 
 흐름:
-1. 규칙 검사 (결정적, API 호출 없음) : 4개 항목을 각각 코드로 검사
+1. 규칙 검사 (결정적, API 호출 없음) : 필수 3개 + 추가 1개 항목을 각각 코드로 검사
 2. 규칙을 통과한 항목만 LLM Judge가 내용 채점 (1~5점, JUDGE_PASS_SCORE 이상 통과)
    → 항목 통과 = 규칙 통과 AND LLM 통과. 규칙 실패 항목은 LLM을 부르지 않는다 (비용 절감).
 3. 하나라도 미달이면 항목별 사유를 feedback으로 담아 재작성 요청
    (재작성 최대 MAX_REVISIONS회, 그 뒤에도 미달이면 현재 보고서로 종료)
 
-평가 항목 (노션 가이드 D. 보고서 품질 평가):
+평가 항목 (노션 가이드 D. 보고서 품질 평가 - 최소 3개 항목):
 - Groundedness  : 본문 주장에 출처 번호[n]가 달려 있고, 그 번호가 실제 검색된 출처로 추적되는가
 - 중립성        : 특정 기업/기술 추천, 우열·순위 판정이 없는가 (과제 정의 그대로)
 - 편향 통제     : 본문 인용이 여러 출처에 분산되고, 기업별로 리스크·한계를 다루는가
-- 관점 커버리지 : 기업별로 기술 성숙도·시장성·이해관계자·도메인 적용 4개 관점을 다루는가
+추가 항목 (가이드 최소 항목 외, 팀 자체 기준):
+- 구조·커버리지 : 필수 목차(SUMMARY, REFERENCE)가 있고, 기업별로 하위 에이전트 3개 관점
+                  (기술성·기업 역량·시장성)을 모두 다루는가
 
 보고서 형식 전제 (reporter 프롬프트에 반영 필요):
 - 본문 서술 문장 끝에 [1], [2] 형식 출처 번호
@@ -71,20 +73,18 @@ BANNED_PATTERNS = [
     r"최고의\s*(?:기업|투자|선택|대안)", r"확실한\s*성공", r"의심의\s*여지", r"무조건",
 ]
 
-# ── 관점 커버리지 규칙: 기업 섹션 안에 관점 소제목 또는 대표 키워드 ─────────────
-#    '적용', '도입'처럼 어디에나 나오는 단어는 제외 (항상 통과하는 문제 방지)
+# ── 구조·커버리지 규칙: 기업 섹션 안에 관점 소제목 또는 대표 키워드 ─────────────
+#    관점은 하위 에이전트(tech / company / market)와 1:1 대응
 PERSPECTIVE_KEYWORDS = {
-    "기술 성숙도": ["기술 성숙도", "기술성숙도", "TRL", "특허", "상용화", "양산", "기술 차별"],
+    "기술성": ["기술성", "TRL", "특허", "상용화", "양산", "기술 차별"],
+    "기업 역량": ["기업 역량", "창업자", "창업팀", "경영진", "매출", "실적", "수익모델", "고객사", "투자 유치"],
     "시장성": ["시장성", "시장 규모", "TAM", "SAM", "CAGR", "성장률", "경쟁 구도"],
-    "이해관계자": ["이해관계자", "창업자", "창업팀", "경영진", "투자자", "투자사", "고객사", "파트너"],
-    "도메인 적용": ["도메인 적용", "도입 사례", "적용 사례", "현장 적용", "도입 효과", "실증", "레퍼런스 고객"],
 }
 # 기업 섹션에 소제목이 있으면 소제목으로 판정 (키워드는 관점끼리 겹치므로 소제목이 없을 때만 사용)
 PERSPECTIVE_HEADINGS = {
-    "기술 성숙도": ["기술 성숙도", "기술성숙도", "기술성", "기술"],
+    "기술성": ["기술"],
+    "기업 역량": ["기업", "창업", "팀", "역량", "실적", "사업", "수익"],
     "시장성": ["시장"],
-    "이해관계자": ["이해관계자", "창업", "팀", "투자자", "고객", "파트너"],
-    "도메인 적용": ["도메인", "적용", "도입", "활용"],
 }
 RISK_KEYWORDS = ["리스크", "한계", "위험", "불확실", "정보 부재", "정보 공백", "우려"]
 
@@ -93,7 +93,7 @@ ITEM_NAMES = {
     "groundedness": "Groundedness",
     "neutrality": "중립성",
     "bias_control": "편향 통제",
-    "coverage": "관점 커버리지",
+    "coverage": "구조·커버리지",
 }
 # 미달 시 원인: 글 문제(재작성) vs 자료 문제(재조사)
 FIX_TARGET = {"groundedness": "reporter", "neutrality": "reporter",
@@ -314,11 +314,13 @@ def check_bias_control(report: str, companies: List[str]) -> List[str]:
 
 
 def check_coverage(report: str, companies: List[str]) -> List[str]:
-    """SUMMARY 존재 + 기업별 섹션 안에 4개 관점이 모두 있는지 검사."""
-    body, _ = split_reference(report)
+    """필수 목차(SUMMARY, REFERENCE) 존재 + 기업별 섹션 안에 3개 관점이 모두 있는지 검사."""
+    body, reference = split_reference(report)
     violations = []
     if not _SUMMARY_HEADING_RE.search(body):
         violations.append("SUMMARY 섹션이 없음")
+    if reference is None:
+        violations.append("REFERENCE 섹션이 없음")
 
     targets = [(c, company_section(body, c)) for c in companies] or [("보고서 전체", body)]
     for name, sec in targets:
@@ -337,7 +339,7 @@ def check_coverage(report: str, companies: List[str]) -> List[str]:
 
 
 def run_rule_checks(report: str, sources: List[str], companies: Optional[List[str]] = None) -> Dict[str, List[str]]:
-    """4개 항목 규칙 검사 결과를 {항목: [미달 사유]}로 반환합니다. (빈 리스트 = 통과)"""
+    """항목별 규칙 검사 결과를 {항목: [미달 사유]}로 반환합니다. (빈 리스트 = 통과)"""
     companies = companies or []
     return {
         "groundedness": check_groundedness(report, sources),
@@ -401,8 +403,9 @@ def run_llm_judge(state: GraphState, items: List[str]) -> LLMJudgeVerdict:
 
 def _to_result(passed: Dict[str, bool], feedback: str) -> QualityEvalResult:
     """
-    4개 항목 판정을 State 스키마(QualityEvalResult)로 옮깁니다.
-    State 모델에 있는 필드만 채우므로 coverage_pass 필드를 추가하면 자동으로 저장됩니다.
+    항목 판정을 State 스키마(QualityEvalResult)로 옮깁니다.
+    추가 항목(구조·커버리지)은 State에 전용 필드가 없어도 verdict와 feedback에 반영됩니다.
+    (State 모델에 coverage_pass 필드가 있으면 함께 저장)
     """
     verdict = "PASS" if all(passed.values()) else "FAIL"
     values = {
@@ -415,8 +418,6 @@ def _to_result(passed: Dict[str, bool], feedback: str) -> QualityEvalResult:
     }
     fields = getattr(QualityEvalResult, "model_fields", None)
     if fields is not None:
-        if "coverage_pass" not in fields:
-            logger.warning("QualityEvalResult에 coverage_pass 필드가 없음 — state.py에 추가 필요")
         values = {k: v for k, v in values.items() if k in fields}
     return QualityEvalResult(**values)
 

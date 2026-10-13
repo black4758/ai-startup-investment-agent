@@ -16,24 +16,22 @@ def good_report():
 - 마스오토는 카메라 기반 화물 자율주행을 실증하고 있다 [4]
 ## 기업별 평가
 ### 트위니
-#### 기술 성숙도
+#### 기술성
 - 특허를 다수 보유했고 양산 단계에 들어섰다고 회사 측 자료는 밝힌다 [1]
 #### 시장성
 - 물류로봇 시장 규모는 연평균 성장률 두 자릿수로 전망된다 [3]
-#### 이해관계자
+#### 기업 역량
 - 주요 고객사로 제조 대기업과 협력하고 있다고 보도되었다 [2]
-#### 도메인 적용
 - 공장 내 물류 현장 적용 사례가 보도되었다 [2]
 #### 리스크
 - 매출 대부분이 소수 고객사에 의존하는 한계가 있다 [2]
 ### 마스오토
-#### 기술 성숙도
+#### 기술성
 - 카메라 기반 E2E 모델로 상용화 이전 실증 단계다 [4]
 #### 시장성
 - 화물 자율주행 시장 규모는 성장 초기 단계로 평가된다 [3]
-#### 이해관계자
+#### 기업 역량
 - 물류 운송사 파트너와 협력해 운행 데이터를 쌓고 있다 [4]
-#### 도메인 적용
 - 고속도로 화물 운송 실증 사례가 확인된다 [4]
 #### 리스크
 - 레벨4 규제가 정비되지 않아 상용화 시점이 불확실하다 [3]
@@ -75,9 +73,13 @@ def test_recommendation_fails_neutrality_but_reference_title_ignored():
     assert rules(rep4)["neutrality"]
 
 def test_coverage_per_company():
-    rep = good_report().replace("#### 도메인 적용\n- 고속도로 화물 운송 실증 사례가 확인된다 [4]\n", "")
+    rep = good_report().replace("#### 기업 역량\n- 물류 운송사 파트너와 협력해 운행 데이터를 쌓고 있다 [4]\n", "")
     r = rules(rep)["coverage"]
     assert r and "마스오토" in r[0], r
+
+def test_missing_required_sections_fail_coverage():
+    assert "SUMMARY 섹션이 없음" in rules(good_report().replace("## SUMMARY", "## 요약"))["coverage"]
+    assert "REFERENCE 섹션이 없음" in rules(good_report().split("## REFERENCES")[0])["coverage"]
 
 def test_bias_risk_per_company_and_concentration():
     rep = good_report().replace("- 레벨4 규제가 정비되지 않아 상용화 시점이 불확실하다 [3]", "- 운행 거리를 늘려가고 있다 [4]")
@@ -148,4 +150,4 @@ def test_coverage_keyword_fallback_without_subheadings():
 [4] 마스오토 뉴스 - https://marsauto.com/news
 """
     r = rules(rep)["coverage"]
-    assert len(r) == 1 and "마스오토" in r[0] and "도메인 적용" in r[0], r
+    assert len(r) == 1 and "마스오토" in r[0] and "기업 역량" in r[0], r
