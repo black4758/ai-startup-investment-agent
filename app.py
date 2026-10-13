@@ -6,10 +6,11 @@ AI Startup Investment Evaluation Agent 메인 실행 엔트리포인트
 import sys
 import uuid
 from dotenv import load_dotenv
-from src.graph import graph
-from src.state import GraphState
 
 load_dotenv()
+
+from src.graph import graph
+from src.state import GraphState
 
 
 def main():
@@ -47,7 +48,21 @@ def main():
     }
 
     try:
-        final_state = graph.invoke(initial_state)
+        run_config = {
+            "run_name": "ai-startup-supervisor",
+            "tags": [
+                "supervisor",
+                "investment-report",
+                "hybrid-evaluation",
+            ],
+            "metadata": {
+                "trace_id": initial_state["trace_id"],
+                "pattern": "supervisor",
+                "evaluation_method": "hybrid",
+            },
+        }
+
+        final_state = graph.invoke(initial_state, config=run_config)
         print("\n" + "=" * 60)
         print("🎉 전체 스타트업 투자 평가가 성공적으로 완료되었습니다!")
         print("=" * 60)
