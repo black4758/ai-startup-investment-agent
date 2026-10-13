@@ -24,24 +24,20 @@ def main():
         # [A. 작업 페이로드]
         "candidates": candidates,
         "current_startup": "",
-        "tech_analysis": "",
-        "tech_scores": {},
-        "company_analysis": "",
-        "company_scores": {},
-        "market_analysis": "",
-        "market_scores": {},
-        "missing_items": [],
+        "perspectives": {},
         "total_score": 0.0,
         "decision": "",
-        "retry_count": 0,
         "evaluations": [],
-        "sources": [],
         "report": "",
         "eval_result": None,
 
-        # [B. 제어 메타데이터 (노션 7대 원칙 준수)]
+        # [B. 제어 메타데이터]
+        "next_agent": "",
+        "agent_counts": {"tech": 0, "company": 0, "market": 0},
+        "report_revision_count": 0,
         "trace_id": str(uuid.uuid4())[:8],
         "step_count": 0,
+        "retry_count": 0,
         "node_status": {},
         "last_error": None,
     }

@@ -35,7 +35,7 @@ try:
 except ImportError:
     from langchain.schema import HumanMessage
 
-from src.state import CompanyScores, GraphState
+from src.state import CompanyScores, GraphState, PerspectiveResult
 from src.vectorstore import build_vectorstore, search_documents
 from src.agents.tech import get_llm, normalize_company_name
 
@@ -380,12 +380,19 @@ def evaluate_company(state: GraphState, vectorstore: Optional[Any] = None) -> Di
         ev_type = ev.get("type", "-") if isinstance(ev, dict) else "-"
         print(f"  - {kor}({key}): {company_scores.get(key)}점 / 5.0 [근거: {ev_type}]")
 
+    company_result = PerspectiveResult(
+        view="company",
+        analysis=company_analysis,
+        scores=company_scores,
+        sources=all_sources,
+        missing_items=reported_missing,
+    )
+    current_perspectives = dict(state.get("perspectives") or {})
+    current_perspectives["company"] = company_result
+
     # 6. GraphState 갱신용 딕셔너리 반환
     return {
-        "company_analysis": company_analysis,
-        "company_scores": company_scores,
-        "missing_items": reported_missing,
-        "sources": all_sources,
+        "perspectives": current_perspectives,
     }
 
 
