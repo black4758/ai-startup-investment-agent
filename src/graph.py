@@ -1,45 +1,251 @@
 """
 [src/graph.py]
-LangGraph 기반 Physical AI 스타트업 투자 평가 파이프라인 (PDF D.2 Graph 흐름 구현)
+LangGraph 기반 Physical AI 스타트업 투자 평가 파이프라인 - Supervisor 패턴
 
-흐름:
-1. START -> extract_candidate (큐에서 1개사 추출 및 필드 초기화)
-2. tech -> company -> market (3대 에이전트 순차 평가)
-3. judge (가중 채점 및 PASS, HOLD, DROP 판정)
-4. route_after_judge (조건부 분기):
-   - HOLD이고 retry_count == 0 -> refine_and_retry (보완 재검색 1회) -> tech 재진입
-   - PASS, DROP 또는 retry_count >= 1 -> save_evaluation (평가 결과 누적)
-5. route_after_save (조건부 분기):
-   - 남은 기업 존재 (len(candidates) > 0) -> extract_candidate (Loop!)
-   - 5개사 전원 검토 완료 (len(candidates) == 0) -> reporter (보고서 생성)
-6. reporter -> END
+구조 (허브-스포크):
+    START -> extract_candidate -> supervisor
+    supervisor --(add_conditional_edges, next_agent)--> tech | company | market | judge | extract_candidate | reporter
+    tech / company / market / judge -> supervisor   (하위 에이전트 간 직접 연결 없음)
+    reporter -> quality_eval -> (FAIL: reporter 재작성 | PASS 또는 재작성 상한: END)
+
+Supervisor 판단 규칙 (규칙 기반 = 같은 State면 항상 같은 결정 -> 재현성):
+    1. 미수집 관점이 있으면 -> 평가 가중치가 큰 관점부터 실행 (기업 40% > 기술 35% > 시장 25%)
+    2. 3개 관점 수집 후 근거 충분도 검사 -> 부족한 관점만 재작업 (관점당 최대 1회)
+       - 실행 실패 / 분석 없음 / 출처 2건 미만 / 항목 과반이 정보 부재(2점 이하)
+    3. 근거가 충분하거나 재작업 상한 도달 -> judge
+    4. 보완 재조사 없이 첫 HOLD -> 점수가 가장 낮은 관점만 보완 재조사 후 재판정
+    5. 판정 확정 -> 남은 기업이 있으면 extract_candidate, 없으면 reporter
+
+종료 보장 (3중 장치):
+    - 관점별 실행 상한 MAX_AGENT_RUNS (agent_counts), 보고서 재작성 상한 MAX_REPORT_REVISIONS (report_revision_count)
+    - 전체 Supervisor 결정 상한 MAX_SUPERVISOR_STEPS (step_count)
+    - LangGraph recursion_limit (GRAPH_RECURSION_LIMIT)
+
+관측성:
+    - 결정과 사유 전체 이력은 외부 로그(outputs/decision_log_{trace_id}.jsonl)에 기록
+    - State에는 최신 결정(next_agent)과 사유 1건(node_status["supervisor"])만 유지 -> State 무한 증식 방지
 """
 
-import os
-from typing import Any, Dict
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
+from pydantic import BaseModel
 
-from src.state import GraphState
+from src.state import GraphState, TechScores, CompanyScores, MarketScores
 from src.agents.tech import evaluate_technology
 from src.agents.company import evaluate_company
 from src.agents.market import evaluate_market
 from src.agents.judge import evaluate_judge
 from src.agents.reporter import generate_report
+from src.agents.quality_eval import evaluate_quality, route_after_quality, MAX_REVISIONS as QUALITY_MAX_REVISIONS
 
 # .env 환경변수 로드
 load_dotenv()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1. 그래프 제어 노드 정의
+# 0. 설정값
+# ─────────────────────────────────────────────────────────────────────────────
+
+# 하위 에이전트(관점) 정의: 평가 가중치(%) 순으로 우선 수집, 점수 키는 state.py 스코어 타입에서 가져옴
+PERSPECTIVES: Dict[str, Dict[str, Any]] = {
+    "company": {"label": "기업", "weight": 40, "score_keys": list(CompanyScores.__annotations__)},
+    "tech":    {"label": "기술", "weight": 35, "score_keys": list(TechScores.__annotations__)},
+    "market":  {"label": "시장", "weight": 25, "score_keys": list(MarketScores.__annotations__)},
+}
+
+MIN_SOURCES = 2              # 관점당 최소 출처 수 (단일 출처 편중 방지 = 노션 '편향 통제')
+WEAK_SCORE = 2.0             # 2점 이하 = 정보 부재 수준 (judge.py MISSING_SCORE와 동일 기준)
+MAX_AGENT_RUNS = 2           # 관점당 최대 실행 횟수 (최초 1회 + 재작업 1회)
+MAX_REPORT_REVISIONS = QUALITY_MAX_REVISIONS  # 보고서 재작성 상한 (quality_eval.py가 report_revision_count로 관리)
+MAX_SUPERVISOR_STEPS = 60    # 전체 Supervisor 결정 상한 (기업당 최대 약 9회 x 5개사 + 여유)
+GRAPH_RECURSION_LIMIT = 150  # LangGraph 노드 실행 상한 (마지막 안전망)
+
+DECISION_LOG_DIR = Path("outputs")
+
+# 보고서 품질 평가 노드 (Hybrid: 규칙 검사 + LLM Judge). None이면 reporter -> END
+QUALITY_EVAL_NODE: Optional[Callable[[GraphState], Dict[str, Any]]] = evaluate_quality
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. 공통 헬퍼
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _perspective(state: GraphState, agent: str) -> Dict[str, Any]:
+    """perspectives[agent]를 dict로 반환 (PerspectiveResult 객체와 dict 모두 허용)"""
+    p = (state.get("perspectives") or {}).get(agent)
+    if isinstance(p, BaseModel):
+        return p.model_dump()
+    return dict(p or {})
+
+
+def _runs(state: GraphState, agent: str) -> int:
+    return int((state.get("agent_counts") or {}).get(agent, 0))
+
+
+def log_decision(state: GraphState, node: str, decision: str, reason: str) -> None:
+    """결정과 사유를 콘솔과 외부 JSONL 로그에 기록 (노션 State 샘플: 결정 로그는 State 밖 관측성 계층으로)"""
+    trace_id = state.get("trace_id") or "no-trace"
+    record = {
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "trace_id": trace_id,
+        "step": state.get("step_count", 0),
+        "node": node,
+        "startup": state.get("current_startup", ""),
+        "decision": decision,
+        "reason": reason,
+    }
+    print(f"[{node}] -> {decision} | {reason}")
+    try:
+        DECISION_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        with open(DECISION_LOG_DIR / f"decision_log_{trace_id}.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except OSError as e:  # 로그 실패로 파이프라인이 멈추지 않도록
+        print(f"[Decision Log] 기록 실패: {e}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. 근거 충분도 판정
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _weak_items(state: GraphState, agent: str) -> List[str]:
+    """정보 부재 수준(2점 이하 또는 점수 없음) 항목 목록"""
+    scores = _perspective(state, agent).get("scores") or {}
+    weak = []
+    for key in PERSPECTIVES[agent]["score_keys"]:
+        try:
+            if float(scores.get(key)) <= WEAK_SCORE:
+                weak.append(key)
+        except (TypeError, ValueError):
+            weak.append(key)
+    return weak
+
+
+def evidence_gaps(state: GraphState, agent: str) -> List[str]:
+    """해당 관점의 근거 부족 사유 목록을 반환합니다. 빈 리스트면 근거 충분."""
+    if (state.get("node_status") or {}).get(agent) == "FAIL":
+        return ["에이전트 실행 실패"]
+
+    p = _perspective(state, agent)
+    gaps = []
+    if not str(p.get("analysis") or "").strip():
+        gaps.append("분석 없음")
+
+    n_sources = len(set(p.get("sources") or []))
+    if n_sources < MIN_SOURCES:
+        gaps.append(f"출처 {n_sources}건 (기준 {MIN_SOURCES}건 이상)")
+
+    # 항목 과반이 정보 부재일 때만 부족으로 판단 (1개 항목만 약한 경우는 judge의 2점 처리로 충분)
+    weak = _weak_items(state, agent)
+    if len(weak) * 2 > len(PERSPECTIVES[agent]["score_keys"]):
+        gaps.append(f"정보 부재 항목 과반 {weak}")
+
+    return gaps
+
+
+def _score_ratio(state: GraphState, agent: str) -> float:
+    """관점의 평균 점수 비율 (0~1). HOLD 시 가장 약한 관점을 고르는 데 사용."""
+    scores = _perspective(state, agent).get("scores") or {}
+    keys = PERSPECTIVES[agent]["score_keys"]
+    values = []
+    for key in keys:
+        try:
+            values.append(float(scores.get(key)))
+        except (TypeError, ValueError):
+            values.append(0.0)
+    return sum(values) / (5.0 * len(keys)) if keys else 0.0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. Supervisor
+# ─────────────────────────────────────────────────────────────────────────────
+
+def decide_next(state: GraphState) -> Tuple[str, str]:
+    """
+    현재 State만 보고 다음 노드와 사유를 결정하는 순수 함수 (LLM 미사용 -> 재현성 보장).
+    반환: (다음 노드 이름, 결정 사유)
+    """
+    status = state.get("node_status") or {}
+    startup = state.get("current_startup", "")
+    by_weight = sorted(PERSPECTIVES, key=lambda a: -PERSPECTIVES[a]["weight"])
+
+    # [종료 보장] 전체 결정 상한
+    if state.get("step_count", 0) >= MAX_SUPERVISOR_STEPS:
+        return "reporter", f"Supervisor 결정 상한({MAX_SUPERVISOR_STEPS}회) 도달 -> 현재까지 결과로 보고서 작성"
+
+    # 판정 확정 -> 다음 기업 또는 보고서
+    if status.get("judge") == "FINAL":
+        decision = state.get("decision", "")
+        remaining = len(state.get("candidates") or [])
+        if remaining:
+            return "extract_candidate", f"'{startup}' 판정 확정({decision}) -> 다음 기업 (남은 {remaining}개사)"
+        return "reporter", f"'{startup}' 판정 확정({decision}), 전 기업 평가 완료 -> 보고서 작성"
+
+    # 1) 미수집 관점: 가중치가 큰 관점부터
+    for agent in by_weight:
+        if _runs(state, agent) == 0:
+            spec = PERSPECTIVES[agent]
+            return agent, f"{spec['label']} 관점 미수집 -> 실행 (평가 가중치 {spec['weight']}%)"
+
+    # 2) 근거 부족 관점 재작업: 부족 사유가 많은 관점부터, 상한 미도달만
+    gaps = {a: evidence_gaps(state, a) for a in by_weight}
+    reworkable = [a for a in by_weight if gaps[a] and _runs(state, a) < MAX_AGENT_RUNS]
+    if reworkable:
+        target = max(reworkable, key=lambda a: len(gaps[a]))
+        return target, f"{PERSPECTIVES[target]['label']} 근거 부족 {gaps[target]} -> 재작업"
+
+    # 3) 보완 재조사 없이 첫 HOLD -> 점수가 가장 낮은 관점 보완 재조사
+    if status.get("judge") == "HOLD_RETRY" and state.get("retry_count", 0) == 0:
+        candidates = [a for a in by_weight if _runs(state, a) < MAX_AGENT_RUNS]
+        if candidates:
+            target = min(candidates, key=lambda a: _score_ratio(state, a))
+            return target, (f"HOLD 판정({state.get('total_score')}점) -> 가장 약한 "
+                            f"{PERSPECTIVES[target]['label']} 관점(점수 비율 {_score_ratio(state, target):.0%}) 보완 재조사")
+        return "judge", "HOLD 판정이나 모든 관점 재작업 상한 도달 -> 재판정으로 확정"
+
+    # 4) 근거 충분 (또는 재작업 상한 도달) -> 투자 판단
+    leftover = {PERSPECTIVES[a]["label"]: g for a, g in gaps.items() if g}
+    if leftover:
+        return "judge", f"재작업 상한 도달, 남은 부족 {leftover}은 정보 부재로 처리 -> 투자 판단"
+    return "judge", "3개 관점 근거 충분 -> 투자 판단"
+
+
+def supervisor(state: GraphState) -> Dict[str, Any]:
+    """Supervisor 노드: 다음 노드를 결정해 next_agent에 기록. 실제 분기는 route_supervisor가 수행."""
+    next_agent, reason = decide_next(state)
+    log_decision(state, "supervisor", next_agent, reason)
+
+    status = dict(state.get("node_status") or {})
+    status["supervisor"] = f"{next_agent}: {reason}"   # 최신 사유 1건만 (전체 이력은 외부 로그)
+    update: Dict[str, Any] = {
+        "next_agent": next_agent,
+        "node_status": status,
+        "step_count": state.get("step_count", 0) + 1,
+    }
+
+    # 재작업이 시작되면 retry_count=1: company 에이전트는 보강 검색, judge는 다음 판정을 확정으로 처리
+    if next_agent in PERSPECTIVES and _runs(state, next_agent) >= 1:
+        update["retry_count"] = 1
+    return update
+
+
+def route_supervisor(state: GraphState) -> str:
+    """add_conditional_edges 분기 함수: Supervisor가 기록한 next_agent로 이동"""
+    return state.get("next_agent") or "reporter"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. 노드 (하위 에이전트 코드는 수정하지 않고 graph에서 감쌈)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def extract_candidate(state: GraphState) -> Dict[str, Any]:
     """
     후보 기업 추출 노드:
-    candidates 큐의 맨 앞 기업을 꺼내어 current_startup으로 지정하고,
-    단일 기업 평가 필드를 초기화합니다.
+    candidates 큐의 맨 앞 기업을 current_startup으로 지정하고 기업 단위 필드를 초기화합니다.
     """
     candidates = list(state.get("candidates") or [])
     if not candidates:
@@ -51,150 +257,150 @@ def extract_candidate(state: GraphState) -> Dict[str, Any]:
     return {
         "candidates": candidates,
         "current_startup": current_startup,
+        "perspectives": {},
+        "agent_counts": {agent: 0 for agent in PERSPECTIVES},
         "retry_count": 0,
-        "tech_analysis": "",
-        "tech_scores": {},
-        "company_analysis": "",
-        "company_scores": {},
-        "market_analysis": "",
-        "market_scores": {},
         "total_score": 0.0,
         "decision": "",
+        "node_status": {},
+        "last_error": None,
     }
 
 
-def refine_and_retry(state: GraphState) -> Dict[str, Any]:
+def make_agent_node(agent: str, fn: Callable[[GraphState], Dict[str, Any]]) -> Callable[[GraphState], Dict[str, Any]]:
     """
-    재검색 및 보완 노드:
-    HOLD 판정 시 정보 부재 항목을 재검색할 수 있도록 retry_count를 증가시킵니다. (최대 1회)
+    하위 에이전트 래퍼:
+    - agent_counts에 실행 횟수 기록 (재작업 상한 판단)
+    - 예외 발생 시 프로그램을 멈추지 않고 FAIL + last_error 기록 -> Supervisor가 재시도 여부 결정
     """
-    startup = state.get("current_startup", "")
-    retry_count = state.get("retry_count", 0) + 1
-    missing = state.get("missing_items", [])
-    print(f"[Retry Loop] '{startup}' HOLD 판정으로 보완 재평가 루프 진입 (재시도 회차: {retry_count}, 정보 부재: {missing})")
+    def node(state: GraphState) -> Dict[str, Any]:
+        counts = dict(state.get("agent_counts") or {})
+        counts[agent] = counts.get(agent, 0) + 1
+        status = dict(state.get("node_status") or {})
 
-    return {
-        "retry_count": retry_count,
+        try:
+            result = dict(fn(state) or {})
+        except Exception as e:
+            status[agent] = "FAIL"
+            error = f"[{agent}] {type(e).__name__}: {e}"
+            print(f"[Fallback] {error}")
+            return {"agent_counts": counts, "node_status": status, "last_error": error}
+
+        status[agent] = "SUCCESS"
+        result["agent_counts"] = counts
+        result["node_status"] = status
+        return result
+
+    node.__name__ = agent
+    return node
+
+
+def make_judge_node(fn: Callable[[GraphState], Dict[str, Any]]) -> Callable[[GraphState], Dict[str, Any]]:
+    """judge 래퍼: 판정 확정 여부를 node_status에 기록 (judge는 확정 시에만 evaluations를 반환)"""
+    def judge(state: GraphState) -> Dict[str, Any]:
+        result = dict(fn(state) or {})
+        status = dict(state.get("node_status") or {})
+        status["judge"] = "FINAL" if "evaluations" in result else "HOLD_RETRY"
+        result["node_status"] = status
+        return result
+
+    return judge
+
+
+def make_quality_router(router: Callable[[GraphState], str]) -> Callable[[GraphState], str]:
+    """
+    품질 평가 분기 래퍼: 팀원 분기 함수(route_after_quality)를 한 번만 호출하고,
+    그 결과와 사유를 Supervisor 결정 로그에 함께 남깁니다. (판정·횟수 계산은 quality_eval.py가 단독 담당)
+    """
+    def route(state: GraphState) -> str:
+        next_node = router(state)
+
+        eval_result = state.get("eval_result")
+        verdict = getattr(eval_result, "verdict", None) or "판정 없음"
+        feedback = str(getattr(eval_result, "feedback", "") or "")
+        revisions = state.get("report_revision_count", 0)
+        if verdict == "PASS":
+            reason = "품질 평가 PASS -> 종료"
+        elif next_node == "end":
+            reason = f"품질 평가 {verdict}, 재작성 상한({MAX_REPORT_REVISIONS}회) 도달 -> 현재 보고서로 종료"
+        else:
+            reason = f"품질 평가 {verdict} (미달 {revisions}회) -> {next_node} ({feedback[:80]})"
+
+        log_decision(state, "quality_eval", next_node, reason)
+        return next_node
+
+    return route
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. 그래프 구성 및 컴파일
+# ─────────────────────────────────────────────────────────────────────────────
+
+def create_investment_graph(
+    agents: Optional[Dict[str, Callable[[GraphState], Dict[str, Any]]]] = None,
+    quality_eval: Optional[Callable[[GraphState], Dict[str, Any]]] = QUALITY_EVAL_NODE,
+    quality_router: Callable[[GraphState], str] = route_after_quality,
+):
+    """
+    Supervisor 패턴 StateGraph 생성 및 컴파일.
+    agents로 노드 함수를 바꿔 끼울 수 있음 (API 호출 없는 구조 테스트용).
+    """
+    fns = {
+        "tech": evaluate_technology,
+        "company": evaluate_company,
+        "market": evaluate_market,
+        "judge": evaluate_judge,
+        "reporter": generate_report,
+        **(agents or {}),
     }
 
-
-def save_evaluation(state: GraphState) -> Dict[str, Any]:
-    """
-    현재 기업의 평가 결과를 evaluations 누적 리스트에 기록합니다.
-    (operator.add 리듀서에 의해 자동 append)
-    """
-    startup = state.get("current_startup", "")
-    total = state.get("total_score", 0.0)
-    decision = state.get("decision", "")
-
-    eval_record = {
-        "startup": startup,
-        "total_score": total,
-        "decision": decision,
-        "tech_scores": state.get("tech_scores") or {},
-        "company_scores": state.get("company_scores") or {},
-        "market_scores": state.get("market_scores") or {},
-        "tech_analysis": state.get("tech_analysis", ""),
-        "company_analysis": state.get("company_analysis", ""),
-        "market_analysis": state.get("market_analysis", ""),
-        "missing_items": list(state.get("missing_items") or []),
-        "sources": list(state.get("sources") or []),
-    }
-
-    print(f"[Save Evaluation] '{startup}' 최종 결과 저장 완료: ...")
-    
-    return {}   # 기록은 judge가 판정 확정 시 evaluations에 직접 추가
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. 조건부 라우팅 함수 (Conditional Edges)
-# ─────────────────────────────────────────────────────────────────────────────
-
-def route_after_judge(state: GraphState) -> str:
-    """
-    투자 판단 후 분기:
-    - HOLD 판정이고 재시도 전(retry_count == 0)이면 -> 'refine_and_retry'
-    - PASS, DROP 또는 1회 재평가 후에도 HOLD이면 -> 'save_evaluation'
-    """
-    decision = state.get("decision", "")
-    retry_count = state.get("retry_count", 0)
-
-    if decision == "HOLD" and retry_count == 0:
-        return "refine_and_retry"
-    return "save_evaluation"
-
-
-def route_after_save(state: GraphState) -> str:
-    """
-    결과 저장 후 분기:
-    - 큐에 남은 후보 기업이 있으면 -> 'extract_candidate' (반복 Loop)
-    - 5개사 전원 검토 완료되었으면 -> 'reporter' (최종 보고서 작성)
-    """
-    candidates = state.get("candidates") or []
-    if len(candidates) > 0:
-        return "extract_candidate"
-    return "reporter"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. 그래프 구성 및 컴파일
-# ─────────────────────────────────────────────────────────────────────────────
-
-def create_investment_graph():
-    """
-    PDF D.2 Graph 흐름 기준 StateGraph 파이프라인 생성 및 컴파일
-    """
     workflow = StateGraph(GraphState)
 
     # 노드 등록
     workflow.add_node("extract_candidate", extract_candidate)
-    workflow.add_node("tech", evaluate_technology)
-    workflow.add_node("company", evaluate_company)
-    workflow.add_node("market", evaluate_market)
-    workflow.add_node("judge", evaluate_judge)
-    workflow.add_node("refine_and_retry", refine_and_retry)
-    workflow.add_node("save_evaluation", save_evaluation)
-    workflow.add_node("reporter", generate_report)
+    workflow.add_node("supervisor", supervisor)
+    for agent in PERSPECTIVES:
+        workflow.add_node(agent, make_agent_node(agent, fns[agent]))
+    workflow.add_node("judge", make_judge_node(fns["judge"]))
+    workflow.add_node("reporter", fns["reporter"])
 
-    # 엣지 연결
-    # 1. 시작 -> 후보 기업 추출
+    # 시작 -> 기업 추출 -> Supervisor
     workflow.add_edge(START, "extract_candidate")
+    workflow.add_edge("extract_candidate", "supervisor")
 
-    # 2. 후보 기업 추출 -> 기술성 -> 기업 -> 시장성 -> 투자 판단 순차 실행
-    workflow.add_edge("extract_candidate", "tech")
-    workflow.add_edge("tech", "company")
-    workflow.add_edge("company", "market")
-    workflow.add_edge("market", "judge")
-
-    # 3. 투자 판단 후 분기 (HOLD 시 재검색 루프 vs 결과 저장)
+    # Supervisor -> State 기반 동적 분기
     workflow.add_conditional_edges(
-        "judge",
-        route_after_judge,
+        "supervisor",
+        route_supervisor,
         {
-            "refine_and_retry": "refine_and_retry",
-            "save_evaluation": "save_evaluation",
-        }
-    )
-
-    # 4. 재검색 후 다시 기술성 평가 노드로 복귀 (루프)
-    workflow.add_edge("refine_and_retry", "tech")
-
-    # 5. 결과 저장 후 분기 (남은 기업 존재 시 반복 vs 보고서 생성)
-    workflow.add_conditional_edges(
-        "save_evaluation",
-        route_after_save,
-        {
+            "tech": "tech",
+            "company": "company",
+            "market": "market",
+            "judge": "judge",
             "extract_candidate": "extract_candidate",
             "reporter": "reporter",
-        }
+        },
     )
 
-    # 6. 보고서 생성 -> 종료
-    workflow.add_edge("reporter", END)
+    # 하위 에이전트와 judge는 항상 Supervisor로 복귀 (에이전트 간 직접 통신 금지)
+    for agent in [*PERSPECTIVES, "judge"]:
+        workflow.add_edge(agent, "supervisor")
 
-    # 컴파일
-    app = workflow.compile()
-    return app
+    # 보고서 -> 품질 평가 Loop
+    if quality_eval is not None:
+        workflow.add_node("quality_eval", quality_eval)
+        workflow.add_edge("reporter", "quality_eval")
+        workflow.add_conditional_edges(
+            "quality_eval",
+            make_quality_router(quality_router),
+            # supervisor: QUALITY_FAIL_ROUTE=supervisor 설정 시 경로 (전 기업 평가 완료 상태라 Supervisor가 reporter로 재지시)
+            {"reporter": "reporter", "supervisor": "supervisor", "end": END},
+        )
+    else:
+        # 품질 평가 없이 실행 (구조 테스트용)
+        workflow.add_edge("reporter", END)
+
+    return workflow.compile().with_config(recursion_limit=GRAPH_RECURSION_LIMIT)
 
 
 # 전역 실행 객체
@@ -202,27 +408,29 @@ graph = create_investment_graph()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. 직접 실행 테스트
+# 6. 직접 실행 테스트
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    initial_candidates = ["트위니", "뉴빌리티", "서울로보틱스", "마스오토", "엑스와이지"]
+    import uuid
+
     initial_state: GraphState = {
-        "candidates": initial_candidates,
+        "candidates": ["트위니", "뉴빌리티", "서울로보틱스", "마스오토", "엑스와이지"],
         "current_startup": "",
-        "tech_analysis": "",
-        "tech_scores": {},
-        "company_analysis": "",
-        "company_scores": {},
-        "market_analysis": "",
-        "market_scores": {},
-        "missing_items": [],
+        "perspectives": {},
         "total_score": 0.0,
         "decision": "",
-        "retry_count": 0,
         "evaluations": [],
-        "sources": [],
         "report": "",
+        "eval_result": None,
+        "next_agent": "",
+        "agent_counts": {agent: 0 for agent in PERSPECTIVES},
+        "report_revision_count": 0,
+        "trace_id": str(uuid.uuid4())[:8],
+        "step_count": 0,
+        "retry_count": 0,
+        "node_status": {},
+        "last_error": None,
     }
 
     print("🚀 [Graph] Physical AI 스타트업 투자 평가 그래프 실행을 시작합니다...")

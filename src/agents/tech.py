@@ -35,7 +35,7 @@ try:
 except ImportError:
     from langchain_community.chat_models import ChatOpenAI
 
-from src.state import GraphState, TechScores
+from src.state import GraphState, TechScores, PerspectiveResult
 from src.vectorstore import build_vectorstore, search_documents
 
 # .env 환경 변수 로드
@@ -43,6 +43,43 @@ load_dotenv()
 
 # 프롬프트 템플릿 경로
 PROMPT_PATH = Path("prompts/tech_prompt.txt")
+
+# 검색 문서 수: 1차 평가 / 재작업(Supervisor 근거 부족 재작업, HOLD 보완 재조사)
+BASE_TOP_K = 3
+RETRY_TOP_K = 5
+WEAK_SCORE = 2.0  # 2점 이하 = 정보 부재 수준 (judge.py MISSING_SCORE와 동일 기준)
+
+# 재작업 시 약한 항목에 맞춰 추가하는 보강 검색어 (1차 검색어와 다른 표현으로 다른 근거를 찾음)
+RETRY_QUERIES = {
+    "tech_differentiation": [
+        "{startup} 등록특허 출원번호 기술인증 논문 수상 원천기술 보유",
+        "{startup} 경쟁사 대비 성능 비교 기술 사양 정확도 벤치마크",
+    ],
+    "purchase_rationale": [
+        "{startup} 도입 고객사 납품 실적 레퍼런스 운영비 절감 ROI",
+        "{startup} 고객 문제 해결 기존 방식 대비 구매 이유 도입 효과",
+    ],
+}
+
+
+def _is_weak(value) -> bool:
+    """점수가 없거나 2점 이하면 보강 대상"""
+    try:
+        return float(value) <= WEAK_SCORE
+    except (TypeError, ValueError):
+        return True
+
+
+# 5개사 평가 동안 벡터스토어(bge-m3 모델 포함)를 한 번만 로드
+_vectorstore_cache: Optional[Any] = None
+
+
+def get_vectorstore() -> Any:
+    """벡터스토어를 한 번만 로드하여 재사용합니다."""
+    global _vectorstore_cache
+    if _vectorstore_cache is None:
+        _vectorstore_cache = build_vectorstore()
+    return _vectorstore_cache
 
 # 한글 기업명 <-> 메타데이터 영문 키 매핑
 COMPANY_MAP = {
@@ -149,7 +186,7 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
     # 2. 벡터스토어 준비 및 검색 실행
     # 필터 조건: company == current_startup AND doc_type IN ["tech", "comprehensive"]
     if vectorstore is None:
-        vectorstore = build_vectorstore()
+        vectorstore = get_vectorstore()
 
     # 5개사(자율주행, 라이다, 로봇팔, 물류로봇 등) 모두에 공통 적용되는 범용 평가 쿼리
     search_queries = [
@@ -157,6 +194,19 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
         f"{startup} 특허 등록 출원 건수 지식재산권 인증",
         f"{startup} 고객 도입 효과 비용 절감 생산성 향상 경제성 수치",
     ]
+    top_k = BASE_TOP_K
+
+    # 재작업 판단: Supervisor가 retry_count=1로 올렸고, 이 기업에서 기술 관점을 이미 한 번 실행한 경우
+    prev_tech = (state.get("perspectives") or {}).get("tech")
+    retry = state.get("retry_count", 0) >= 1 and prev_tech is not None
+    if retry:
+        prev_scores = prev_tech.get("scores", {}) if isinstance(prev_tech, dict) else (getattr(prev_tech, "scores", None) or {})
+        weak_keys = [k for k in RETRY_QUERIES if _is_weak(prev_scores.get(k))]
+        # 출처 부족으로 재작업된 경우처럼 약한 항목이 없으면 전 항목 보강
+        for key in weak_keys or list(RETRY_QUERIES):
+            search_queries.extend(q.format(startup=startup) for q in RETRY_QUERIES[key])
+        top_k = RETRY_TOP_K
+        print(f"[Tech Agent] '{startup}' 재작업: 보강 항목 {weak_keys or '전체'}, 검색어 {len(search_queries)}개 x 문서 {top_k}개")
 
     docs = []
     seen = set()
@@ -166,7 +216,7 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
             query=q,
             company=company_key,
             doc_types=["tech", "comprehensive"],
-            k=3,
+            k=top_k,
         )
         for d in sub_docs:
             doc_id = (d.metadata.get("file_name"), d.page_content[:60])
@@ -235,12 +285,19 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
     if missing_items:
         print(f"  - 정보부재 항목: {missing_items}")
 
+    tech_result = PerspectiveResult(
+        view="tech",
+        analysis=tech_analysis,
+        scores=tech_scores,
+        sources=all_sources,
+        missing_items=missing_items,
+    )
+    current_perspectives = dict(state.get("perspectives") or {})
+    current_perspectives["tech"] = tech_result
+
     # 6. GraphState 갱신용 딕셔너리 반환
     return {
-        "tech_analysis": tech_analysis,
-        "tech_scores": tech_scores,
-        "missing_items": missing_items,
-        "sources": all_sources,
+        "perspectives": current_perspectives,
     }
 
 

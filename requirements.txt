@@ -5,6 +5,7 @@ langchain-text-splitters
 langchain-huggingface
 langchain-openai
 langgraph
+langsmith
 faiss-cpu
 sentence-transformers
 torch
@@ -12,4 +13,3 @@ pypdf
 python-dotenv
 tiktoken
 markdown-pdf
-
