@@ -281,7 +281,10 @@ def evaluate_company(state: GraphState, vectorstore: Optional[Any] = None) -> Di
 
     retry_count = state.get("retry_count", 0)
     # HOLD 재평가 시 1차 평가에서 정보 부재였던 항목 (PDF C.5)
-    weak_items = get_weak_items(state.get("company_scores") or {}) if retry_count >= 1 else []
+    # 이전 점수는 perspectives["company"].scores에 저장되어 있음
+    prev_company = (state.get("perspectives") or {}).get("company")
+    prev_scores = prev_company.scores if prev_company is not None else {}
+    weak_items = get_weak_items(prev_scores) if retry_count >= 1 else []
 
     # 1. 기업명 메타데이터 키 정규화
     company_key = normalize_company_name(startup)
