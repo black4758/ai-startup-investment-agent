@@ -122,8 +122,7 @@ graph TD
 ## Usage
 ```bash
 pip install -r requirements.txt
-cp .env.example .env     # OPENAI_API_KEY, LANGSMITH_API_KEY 입력
-echo "OPENAI_JUDGE_MODEL=gpt-4o" >> .env   # 품질 평가 Judge 모델 (미지정 시 OPENAI_MODEL 사용)
+cp .env.example .env     # OPENAI_API_KEY, LANGSMITH_API_KEY, OPENAI_JUDGE_MODEL 입력
 
 python app.py                                 # 5개사 평가 → 보고서 생성 → 품질 평가
 python -m pytest tests/test_quality_eval.py   # 품질 평가 단위 테스트 (API 키 불필요)
