@@ -69,6 +69,18 @@ def _is_weak(value) -> bool:
     except (TypeError, ValueError):
         return True
 
+
+# 5개사 평가 동안 벡터스토어(bge-m3 모델 포함)를 한 번만 로드
+_vectorstore_cache: Optional[Any] = None
+
+
+def get_vectorstore() -> Any:
+    """벡터스토어를 한 번만 로드하여 재사용합니다."""
+    global _vectorstore_cache
+    if _vectorstore_cache is None:
+        _vectorstore_cache = build_vectorstore()
+    return _vectorstore_cache
+
 # 한글 기업명 <-> 메타데이터 영문 키 매핑
 COMPANY_MAP = {
     "트위니": "twinny",
@@ -174,7 +186,7 @@ def evaluate_technology(state: GraphState, vectorstore: Optional[Any] = None) ->
     # 2. 벡터스토어 준비 및 검색 실행
     # 필터 조건: company == current_startup AND doc_type IN ["tech", "comprehensive"]
     if vectorstore is None:
-        vectorstore = build_vectorstore()
+        vectorstore = get_vectorstore()
 
     # 5개사(자율주행, 라이다, 로봇팔, 물류로봇 등) 모두에 공통 적용되는 범용 평가 쿼리
     search_queries = [
