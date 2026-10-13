@@ -21,7 +21,7 @@ from typing import Any, Dict
 
 from langchain_openai import ChatOpenAI
 
-from src.state import GraphState
+from src.state import GraphState, PerspectiveResult
 from src.vectorstore import build_vectorstore, search_documents
 from src.agents.tech import normalize_company_name
 
@@ -187,12 +187,16 @@ def evaluate_market(state: GraphState) -> Dict[str, Any]:
     scores, missing, notes = validate(parsed, docs)
 
     analysis = parsed["analysis"]
-    if notes:
-        analysis += "\n\n[코드 보정] " + " / ".join(notes)
+    market_result = PerspectiveResult(
+        view="market",
+        analysis=analysis,
+        scores=scores,
+        sources=collect_sources(docs),
+        missing_items=missing,
+    )
+    current_perspectives = dict(state.get("perspectives") or {})
+    current_perspectives["market"] = market_result
 
     return {
-        "market_analysis": analysis,
-        "market_scores": scores,
-        "missing_items": missing,
-        "sources": collect_sources(docs),
+        "perspectives": current_perspectives,
     }

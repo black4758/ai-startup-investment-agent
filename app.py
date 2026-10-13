@@ -4,6 +4,7 @@ AI Startup Investment Evaluation Agent 메인 실행 엔트리포인트
 """
 
 import sys
+import uuid
 from dotenv import load_dotenv
 from src.graph import graph
 from src.state import GraphState
@@ -20,21 +21,25 @@ def main():
     candidates = ["트위니", "뉴빌리티", "서울로보틱스", "마스오토", "엑스와이지"]
 
     initial_state: GraphState = {
+        # [A. 작업 페이로드]
         "candidates": candidates,
         "current_startup": "",
-        "tech_analysis": "",
-        "tech_scores": {},
-        "company_analysis": "",
-        "company_scores": {},
-        "market_analysis": "",
-        "market_scores": {},
-        "missing_items": [],
+        "perspectives": {},
         "total_score": 0.0,
         "decision": "",
-        "retry_count": 0,
         "evaluations": [],
-        "sources": [],
         "report": "",
+        "eval_result": None,
+
+        # [B. 제어 메타데이터]
+        "next_agent": "",
+        "agent_counts": {"tech": 0, "company": 0, "market": 0},
+        "report_revision_count": 0,
+        "trace_id": str(uuid.uuid4())[:8],
+        "step_count": 0,
+        "retry_count": 0,
+        "node_status": {},
+        "last_error": None,
     }
 
     try:
